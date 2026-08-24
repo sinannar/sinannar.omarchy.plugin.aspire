@@ -182,11 +182,22 @@ Panel {
           Text {
             visible: root.runningAppHosts.length === 0
             width: parent.width
-            text: "Start an AppHost with `aspire start`; it shows up here once Aspire reports it running."
+            text: root.hostWidget && root.hostWidget.lastPollFailed
+              ? "The Aspire CLI is unavailable. Install it from aspire.dev, then refresh this widget."
+              : "Start an AppHost with `aspire start`; it shows up here once Aspire reports it running."
             color: Qt.darker(root.contentForeground, 1.5)
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
             wrapMode: Text.WordWrap
+          }
+
+          Button {
+            visible: root.runningAppHosts.length === 0 && root.hostWidget && root.hostWidget.lastPollFailed
+            text: "Install Aspire CLI"
+            fontFamily: root.contentFontFamily
+            foreground: root.contentForeground
+            bordered: true
+            onClicked: Qt.openUrlExternally("https://aspire.dev")
           }
         }
       }

@@ -1,6 +1,6 @@
 # Aspire
 
-Bar widget and details panel for locally running [.NET Aspire](https://aspire.dev)
+Bar widget and details panel for locally running [Aspire](https://aspire.dev)
 AppHosts. The bar shows how many AppHosts `aspire ps` currently reports as
 running; the panel lets you pick one of them and see its resources (state,
 health, endpoints, and lifecycle commands) with `aspire describe`.
@@ -14,12 +14,18 @@ acts on AppHosts that are already running.
 The bar widget shows the number of running AppHosts and opens a details panel
 with per-resource state, health, endpoints, and enabled lifecycle commands:
 
-![Aspire plugin bar widget and details panel](pictures/plugin.png)
+<img src="pictures/plugin.png" alt="Aspire plugin bar widget and details panel" width="526" height="600">
 
 The panel is backed by the same `aspire ps` and `aspire describe` data shown
 in the CLI:
 
-![Aspire CLI ps and describe output](pictures/aspire-ps-describe.png)
+<img src="pictures/aspire-ps-describe.png" alt="Aspire CLI ps and describe output" width="1000" height="324">
+
+When the Aspire CLI is not installed, the panel explains what is missing and
+provides an **Install Aspire CLI** button that opens the official
+[Aspire website](https://aspire.dev):
+
+<img src="pictures/aspire-cli-missing.png" alt="Aspire CLI missing" width="624" height="300">
 
 ## Install
 

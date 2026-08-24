@@ -1,7 +1,7 @@
 # Aspire Omarchy plugin
 
 An Omarchy/Quickshell bar-widget plugin (QML + JS) that shows how many
-locally running .NET Aspire AppHosts `aspire ps` reports, plus a details
+locally running Aspire AppHosts `aspire ps` reports, plus a details
 panel with per-resource status (`aspire describe`) and lifecycle actions.
 It is a thin, read-mostly wrapper around the Aspire CLI: it never runs
 `dotnet` directly and never starts an AppHost, only observes/acts on ones

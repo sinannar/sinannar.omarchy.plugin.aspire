@@ -5,7 +5,7 @@ import qs.Commons
 import qs.Ui
 import "Model.js" as Model
 
-// Bar presence for locally running .NET Aspire AppHosts. This widget only
+// Bar presence for locally running Aspire AppHosts. This widget only
 // ever tracks AppHosts `aspire ps` currently reports as running — it never
 // remembers, configures, or starts a stopped one. Left click opens the
 // details panel; middle click forces an immediate refresh.
