@@ -258,7 +258,7 @@ Panel {
     property color contentForeground: Color.foreground
     property string contentFontFamily: Style.font.family
 
-    property var resources: []
+    property var describedResources: []
     property bool loading: false
     property bool loadFailed: false
     property string describeError: ""
@@ -278,7 +278,7 @@ Panel {
 
     signal appHostStopped()
 
-    readonly property var summary: Model.summarizeResources(section.resources)
+    readonly property var summary: Model.summarizeResources(section.describedResources)
     readonly property string severity: Model.appHostSeverity(section.summary)
     readonly property color severityColor: section.severity === "critical"
       ? Color.urgent
@@ -324,7 +324,7 @@ Panel {
     // error, a pending confirmation) must be cleared before fetching the
     // newly selected host's resources.
     onEntryChanged: {
-      section.resources = []
+      section.describedResources = []
       section.loadFailed = false
       section.describeError = ""
       section.commandError = ""
@@ -363,7 +363,7 @@ Panel {
           } else {
             section.loadFailed = false
             section.describeError = ""
-            section.resources = Model.parseDescribeResources(describeStdout.text)
+            section.describedResources = Model.parseDescribeResources(describeStdout.text)
           }
         }
         if (section.refreshQueued || !stillSelected) {
@@ -473,7 +473,7 @@ Panel {
       // Shown only while nothing is known yet for the selected AppHost, so
       // switching to one whose resources haven't loaded doesn't read as
       // silently empty.
-      visible: section.loading && section.resources.length === 0 && !section.loadFailed
+      visible: section.loading && section.describedResources.length === 0 && !section.loadFailed
       width: parent.width
       text: "Loading resources…"
       color: Qt.darker(section.contentForeground, 1.4)
@@ -504,7 +504,7 @@ Panel {
     }
 
     Text {
-      visible: !section.loading && !section.loadFailed && section.resources.length === 0
+      visible: !section.loading && !section.loadFailed && section.describedResources.length === 0
       width: parent.width
       text: "No resources reported."
       color: Qt.darker(section.contentForeground, 1.5)
@@ -513,7 +513,7 @@ Panel {
     }
 
     Repeater {
-      model: section.resources
+      model: section.describedResources
 
       ResourceRow {
         required property var modelData
