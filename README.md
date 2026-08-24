@@ -9,6 +9,46 @@ This plugin is a thin, read-mostly wrapper around the Aspire CLI. It never
 runs `dotnet` directly and never starts an AppHost — it only observes and
 acts on AppHosts that are already running.
 
+## Screenshots
+
+The bar widget shows the number of running AppHosts and opens a details panel
+with per-resource state, health, endpoints, and enabled lifecycle commands:
+
+![Aspire plugin bar widget and details panel](pictures/plugin.png)
+
+The panel is backed by the same `aspire ps` and `aspire describe` data shown
+in the CLI:
+
+![Aspire CLI ps and describe output](pictures/aspire-ps-describe.png)
+
+## Install
+
+```sh
+omarchy plugin add https://github.com/sinannar/sinannar.omarchy.plugin.aspire.git --enable
+```
+
+## Usage
+
+Click the Aspire bar widget to open or close the details panel. Press Escape
+to close it. The panel lists AppHosts currently reported as `running` by
+`aspire ps`; select an AppHost to inspect its resources.
+
+## Configure
+
+Move the widget to a different bar section with:
+
+```sh
+omarchy bar move sinannar.omarchy.plugin.aspire --section center
+```
+
+See the [Settings](#settings) section for the polling interval.
+
+## Remove
+
+```sh
+omarchy plugin remove sinannar.omarchy.plugin.aspire
+```
+
 ## Dependencies
 
 | Requirement | Why | Install |
