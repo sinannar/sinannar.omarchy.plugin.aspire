@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "sinannar.omarchy.plugin.aspire",
   "name": "Aspire",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "author": "sinannar",
   "license": "MIT",
   "description": "Shows how many Aspire AppHosts are currently running, with per-resource status and lifecycle actions",
