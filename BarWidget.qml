@@ -103,6 +103,13 @@ BarWidget {
 
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
+  // ModuleSlot (the bar's per-widget layout item) only reserves space for
+  // this widget when *this* root item's own `visible` is true — it doesn't
+  // look inside at `button.hasVisualContent`. Without this binding, the
+  // outer root stays visible (Item's default) even once `button` collapses
+  // to invisible/zero-opacity, so the bar still reserved a hasAppHosts-sized
+  // gap next to it whenever no AppHosts were running.
+  visible: button.hasVisualContent
 
   onBarChanged: injectPanel()
   onSettingsChanged: injectPanel()
