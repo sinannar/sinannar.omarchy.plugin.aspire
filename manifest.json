@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "sinannar.omarchy.plugin.aspire",
+  "name": "Aspire",
+  "version": "1.0.0",
+  "author": "sinannar",
+  "description": "Shows how many .NET Aspire AppHosts are currently running, with per-resource status and lifecycle actions",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Aspire",
+    "description": "Running Aspire AppHost count, with resource status and lifecycle actions",
+    "category": "Development",
+    "allowMultiple": false
+  }
+}
