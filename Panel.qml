@@ -370,7 +370,7 @@ Panel {
         if (stillSelected) {
           if (exitCode !== 0) {
             section.loadFailed = true
-            section.describeError = String(describeStderr.text || "").trim()
+            section.describeError = Model.capOutput(describeStderr.text).trim()
           } else {
             section.loadFailed = false
             section.describeError = ""
@@ -391,7 +391,7 @@ Panel {
       stderr: StdioCollector { id: commandStderr; waitForEnd: true }
       onExited: function(exitCode) {
         section.pendingCommandKey = ""
-        section.commandError = exitCode !== 0 ? String(commandStderr.text || "Command failed").trim() : ""
+        section.commandError = exitCode !== 0 ? Model.capOutput(commandStderr.text || "Command failed").trim() : ""
         section.refreshResources()
       }
     }
@@ -402,7 +402,7 @@ Panel {
       stdout: StdioCollector { id: stopStdout; waitForEnd: true }
       stderr: StdioCollector { id: stopStderr; waitForEnd: true }
       onExited: function(exitCode) {
-        section.commandError = exitCode !== 0 ? String(stopStderr.text || "Stop failed").trim() : ""
+        section.commandError = exitCode !== 0 ? Model.capOutput(stopStderr.text || "Stop failed").trim() : ""
         section.appHostStopped()
       }
     }
