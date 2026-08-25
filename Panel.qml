@@ -75,6 +75,19 @@ Panel {
     if (root.hostWidget && typeof root.hostWidget.refresh === "function") root.hostWidget.refresh()
   }
 
+  // qs.Ui.Button and qs.Ui.ConfirmDialog currently render their own internal
+  // Text nodes without forcing PlainText, so CLI/project-derived strings sent
+  // through those APIs must be escaped before they reach those components.
+  function escapeRichText(text) {
+    var s = String(text === undefined || text === null ? "" : text)
+    return s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+  }
+
   onOpenedChanged: if (opened) requestBarRefresh()
 
   KeyboardPanel {
@@ -121,6 +134,7 @@ Panel {
 
               Text {
                 text: "Aspire"
+                textFormat: Text.PlainText
                 color: root.contentForeground
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.title
@@ -130,6 +144,7 @@ Panel {
                 text: root.runningAppHosts.length === 0
                   ? "No AppHosts running"
                   : root.runningAppHosts.length + " AppHost" + (root.runningAppHosts.length === 1 ? "" : "s") + " running"
+                textFormat: Text.PlainText
                 color: Qt.darker(root.contentForeground, 1.4)
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.caption
@@ -185,6 +200,7 @@ Panel {
             text: root.hostWidget && root.hostWidget.lastPollFailed
               ? "The Aspire CLI is unavailable. Install it from aspire.dev, then refresh this widget."
               : "Start an AppHost with `aspire start`; it shows up here once Aspire reports it running."
+            textFormat: Text.PlainText
             color: Qt.darker(root.contentForeground, 1.5)
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
@@ -238,6 +254,7 @@ Panel {
           id: chipLabel
           anchors.centerIn: parent
           text: chip.modelData.label
+          textFormat: Text.PlainText
           color: chip.selected ? Color.popups.background : picker.contentForeground
           font.family: picker.contentFontFamily
           font.pixelSize: Style.font.caption
@@ -467,6 +484,7 @@ Panel {
 
         Text {
           text: section.entry ? section.entry.label : ""
+          textFormat: Text.PlainText
           color: section.contentForeground
           font.family: section.contentFontFamily
           font.pixelSize: Style.font.title
@@ -476,6 +494,7 @@ Panel {
 
         Text {
           text: "· " + section.summary.running + "/" + section.summary.total + " running"
+          textFormat: Text.PlainText
           color: Qt.darker(section.contentForeground, 1.4)
           font.family: section.contentFontFamily
           font.pixelSize: Style.font.caption
@@ -512,6 +531,7 @@ Panel {
     Text {
       width: parent.width
       text: section.entry ? section.entry.appHostPath : ""
+      textFormat: Text.PlainText
       color: Qt.darker(section.contentForeground, 1.6)
       font.family: section.contentFontFamily
       font.pixelSize: Style.font.bodySmall
@@ -525,6 +545,7 @@ Panel {
       visible: section.loading && section.describedResources.length === 0 && !section.loadFailed
       width: parent.width
       text: "Loading resources…"
+      textFormat: Text.PlainText
       color: Qt.darker(section.contentForeground, 1.4)
       font.family: section.contentFontFamily
       font.pixelSize: Style.font.caption
@@ -536,6 +557,7 @@ Panel {
       text: section.describeError !== ""
         ? "Couldn't read resource status: " + section.describeError
         : "Couldn't read resource status for this AppHost."
+      textFormat: Text.PlainText
       color: Color.urgent
       font.family: section.contentFontFamily
       font.pixelSize: Style.font.caption
@@ -546,6 +568,7 @@ Panel {
       visible: section.commandError !== ""
       width: parent.width
       text: section.commandError
+      textFormat: Text.PlainText
       color: Color.urgent
       font.family: section.contentFontFamily
       font.pixelSize: Style.font.caption
@@ -556,6 +579,7 @@ Panel {
       visible: !section.loading && !section.loadFailed && section.describedResources.length === 0
       width: parent.width
       text: "No resources reported."
+      textFormat: Text.PlainText
       color: Qt.darker(section.contentForeground, 1.5)
       font.family: section.contentFontFamily
       font.pixelSize: Style.font.bodySmall
@@ -576,7 +600,7 @@ Panel {
       width: parent.width
       height: Style.space(180)
       opened: section.confirmingStop
-      message: "Stop " + (section.entry ? section.entry.label : "this AppHost") + "? This stops the whole AppHost and every resource it owns."
+      message: "Stop " + root.escapeRichText(section.entry ? section.entry.label : "this AppHost") + "? This stops the whole AppHost and every resource it owns."
       cancelText: "Cancel"
       confirmText: "Stop"
       background: Color.popups.background
@@ -622,6 +646,7 @@ Panel {
 
         Text {
           text: row.resource.displayName
+          textFormat: Text.PlainText
           color: row.fg
           font.family: row.appHostSection.contentFontFamily
           font.pixelSize: Style.font.body
@@ -630,6 +655,7 @@ Panel {
         }
         Text {
           text: row.resource.resourceType
+          textFormat: Text.PlainText
           color: Qt.darker(row.fg, 1.5)
           font.family: row.appHostSection.contentFontFamily
           font.pixelSize: Style.font.caption
@@ -645,6 +671,7 @@ Panel {
         text: row.resource.healthCategory === "unhealthy"
           ? (row.resource.state + " · " + row.resource.healthStatus)
           : row.resource.state
+        textFormat: Text.PlainText
         color: row.stateColor
         font.family: row.appHostSection.contentFontFamily
         font.pixelSize: Style.font.caption
@@ -670,6 +697,7 @@ Panel {
           readonly property bool nameIsScheme: modelData.name !== ""
             && modelData.url.toLowerCase().indexOf(modelData.name.toLowerCase() + "://") === 0
           text: modelData.name !== "" && !nameIsScheme ? modelData.name + ": " + modelData.url : modelData.url
+          textFormat: Text.PlainText
           color: Color.accent
           font.family: row.appHostSection.contentFontFamily
           font.pixelSize: Style.font.caption
@@ -697,9 +725,9 @@ Panel {
         Button {
           required property var modelData
           text: row.commandPending && row.appHostSection.pendingCommandKey === (row.resource.name + ":" + modelData.name)
-            ? modelData.displayName + "…"
-            : modelData.displayName
-          tooltipText: modelData.description
+            ? root.escapeRichText(modelData.displayName + "…")
+            : root.escapeRichText(modelData.displayName)
+          tooltipText: root.escapeRichText(modelData.description)
           fontFamily: row.appHostSection.contentFontFamily
           foreground: row.fg
           fontSize: Style.font.caption
