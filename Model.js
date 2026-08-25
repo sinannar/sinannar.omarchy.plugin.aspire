@@ -26,13 +26,26 @@ var MAX_RESOURCES    = 500
 var MAX_URLS         = 20
 var MAX_COMMANDS     = 20
 
-// Truncates CLI stdout/stderr to MAX_OUTPUT_CHARS before any further
-// processing. Call this on every raw string received from a Process before
-// passing it to a parse function so the collector buffer size is irrelevant.
+// Truncates a complete text payload to MAX_OUTPUT_CHARS. This remains the
+// parse-time guard (tryParseJson uses it) and also a safe boundary for any
+// external caller that still has a full string rather than stream chunks.
 function capOutput(text) {
   var s = String(text === undefined || text === null ? "" : text)
   if (s.length > MAX_OUTPUT_CHARS) return s.substring(0, MAX_OUTPUT_CHARS)
   return s
+}
+
+// Appends a stream chunk while preserving a hard MAX_OUTPUT_CHARS cap.
+// This is used by QML stream parsers to bound memory *during collection*,
+// not only after process exit.
+function appendCapped(existing, chunk) {
+  var current = String(existing === undefined || existing === null ? "" : existing)
+  if (current.length >= MAX_OUTPUT_CHARS) return current
+  var next = String(chunk === undefined || chunk === null ? "" : chunk)
+  if (next === "") return current
+  var remaining = MAX_OUTPUT_CHARS - current.length
+  if (next.length > remaining) next = next.substring(0, remaining)
+  return current + next
 }
 
 function tryParseJson(text) {
@@ -323,6 +336,7 @@ if (typeof module !== "undefined") {
     MAX_URLS: MAX_URLS,
     MAX_COMMANDS: MAX_COMMANDS,
     capOutput: capOutput,
+    appendCapped: appendCapped,
     tryParseJson: tryParseJson,
     isRunningPsEntry: isRunningPsEntry,
     psEntryId: psEntryId,

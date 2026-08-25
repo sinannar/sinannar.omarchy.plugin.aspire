@@ -276,6 +276,12 @@ Panel {
     property bool confirmingStop: false
     property string pendingCommandKey: ""
     property string commandError: ""
+    property string describeStdoutText: ""
+    property string describeStderrText: ""
+    property string commandStdoutText: ""
+    property string commandStderrText: ""
+    property string stopStdoutText: ""
+    property string stopStderrText: ""
 
     // The AppHost path the currently in-flight describeProcess was launched
     // for, and whether another refresh was requested while it was running
@@ -310,6 +316,8 @@ Panel {
       section.refreshQueued = false
       section.loading = true
       section.describeRequestPath = section.entry.appHostPath
+      section.describeStdoutText = ""
+      section.describeStderrText = ""
       describeProcess.command = Model.aspireCommand(Model.describeArgs(section.entry.appHostPath))
       describeProcess.running = true
     }
@@ -318,6 +326,8 @@ Panel {
       if (!section.entry) return
       if (commandProcess.running) return
       section.pendingCommandKey = resourceName + ":" + commandName
+      section.commandStdoutText = ""
+      section.commandStderrText = ""
       commandProcess.command = Model.aspireCommand(Model.resourceCommandArgs(section.entry.appHostPath, resourceName, commandName))
       commandProcess.running = true
     }
@@ -326,6 +336,8 @@ Panel {
       section.confirmingStop = false
       if (!section.entry) return
       if (stopProcess.running) return
+      section.stopStdoutText = ""
+      section.stopStderrText = ""
       stopProcess.command = Model.aspireCommand(Model.stopAppHostArgs(section.entry.appHostPath))
       stopProcess.running = true
     }
@@ -358,8 +370,14 @@ Panel {
     Process {
       id: describeProcess
       environment: ({ "PATH": Model.augmentedPath(Quickshell.env("PATH"), Quickshell.env("HOME")) })
-      stdout: StdioCollector { id: describeStdout; waitForEnd: true }
-      stderr: StdioCollector { id: describeStderr; waitForEnd: true }
+      stdout: SplitParser {
+        splitMarker: ""
+        onRead: function(data) { section.describeStdoutText = Model.appendCapped(section.describeStdoutText, data) }
+      }
+      stderr: SplitParser {
+        splitMarker: ""
+        onRead: function(data) { section.describeStderrText = Model.appendCapped(section.describeStderrText, data) }
+      }
       onExited: function(exitCode) {
         section.loading = false
         // Only apply this result if the selection hasn't moved on to a
@@ -370,11 +388,11 @@ Panel {
         if (stillSelected) {
           if (exitCode !== 0) {
             section.loadFailed = true
-            section.describeError = Model.capOutput(describeStderr.text).trim()
+            section.describeError = section.describeStderrText.trim()
           } else {
             section.loadFailed = false
             section.describeError = ""
-            section.describedResources = Model.parseDescribeResources(describeStdout.text)
+            section.describedResources = Model.parseDescribeResources(section.describeStdoutText)
           }
         }
         if (section.refreshQueued || !stillSelected) {
@@ -387,11 +405,17 @@ Panel {
     Process {
       id: commandProcess
       environment: ({ "PATH": Model.augmentedPath(Quickshell.env("PATH"), Quickshell.env("HOME")) })
-      stdout: StdioCollector { id: commandStdout; waitForEnd: true }
-      stderr: StdioCollector { id: commandStderr; waitForEnd: true }
+      stdout: SplitParser {
+        splitMarker: ""
+        onRead: function(data) { section.commandStdoutText = Model.appendCapped(section.commandStdoutText, data) }
+      }
+      stderr: SplitParser {
+        splitMarker: ""
+        onRead: function(data) { section.commandStderrText = Model.appendCapped(section.commandStderrText, data) }
+      }
       onExited: function(exitCode) {
         section.pendingCommandKey = ""
-        section.commandError = exitCode !== 0 ? Model.capOutput(commandStderr.text || "Command failed").trim() : ""
+        section.commandError = exitCode !== 0 ? (section.commandStderrText || "Command failed").trim() : ""
         section.refreshResources()
       }
     }
@@ -399,10 +423,16 @@ Panel {
     Process {
       id: stopProcess
       environment: ({ "PATH": Model.augmentedPath(Quickshell.env("PATH"), Quickshell.env("HOME")) })
-      stdout: StdioCollector { id: stopStdout; waitForEnd: true }
-      stderr: StdioCollector { id: stopStderr; waitForEnd: true }
+      stdout: SplitParser {
+        splitMarker: ""
+        onRead: function(data) { section.stopStdoutText = Model.appendCapped(section.stopStdoutText, data) }
+      }
+      stderr: SplitParser {
+        splitMarker: ""
+        onRead: function(data) { section.stopStderrText = Model.appendCapped(section.stopStderrText, data) }
+      }
       onExited: function(exitCode) {
-        section.commandError = exitCode !== 0 ? Model.capOutput(stopStderr.text || "Stop failed").trim() : ""
+        section.commandError = exitCode !== 0 ? (section.stopStderrText || "Stop failed").trim() : ""
         section.appHostStopped()
       }
     }
