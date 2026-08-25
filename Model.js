@@ -48,6 +48,16 @@ function appendCapped(existing, chunk) {
   return current + next
 }
 
+// True if a collected string hit the hard MAX_OUTPUT_CHARS boundary, meaning
+// the CLI likely emitted more than was retained. Callers use this to tell
+// "the CLI printed nothing/garbage" (never capped, safe to treat as empty)
+// apart from "a real, larger response was cut off mid-stream" (capped, so a
+// resulting parse failure must NOT be treated as "no data" — the caller
+// should keep its last-known-good snapshot instead of blanking out).
+function wasCapped(text) {
+  return String(text === undefined || text === null ? "" : text).length >= MAX_OUTPUT_CHARS
+}
+
 function tryParseJson(text) {
   try {
     return JSON.parse(capOutput(text))
@@ -157,7 +167,13 @@ function safeUrls(raw) {
 // itself reports as "Enabled" are ever offered, and never a hardcoded
 // start/stop/restart trio. Sorted by Aspire's own sortOrder so the dashboard
 // and this panel agree on button order. At most MAX_COMMANDS entries are kept
-// per resource.
+// per resource — sorted first, then capped, so a resource with more than
+// MAX_COMMANDS enabled commands still keeps its lowest-sortOrder ones rather
+// than whichever happened to be the first object keys encountered. The
+// per-resource command count is itself bounded by the outer MAX_RESOURCES /
+// MAX_OUTPUT_CHARS caps already applied to the response this is called on,
+// so sorting the full per-resource list before slicing is not a separate
+// unbounded-allocation risk.
 function enabledCommands(raw) {
   var commands = raw && raw.commands && typeof raw.commands === "object" ? raw.commands : {}
   var list = []
@@ -172,9 +188,9 @@ function enabledCommands(raw) {
       description: String(c.description || ""),
       sortOrder: isFinite(order) ? order : 999
     })
-    if (list.length >= MAX_COMMANDS) break
   }
   list.sort(function(a, b) { return a.sortOrder - b.sortOrder })
+  if (list.length > MAX_COMMANDS) list = list.slice(0, MAX_COMMANDS)
   return list
 }
 
@@ -337,6 +353,7 @@ if (typeof module !== "undefined") {
     MAX_COMMANDS: MAX_COMMANDS,
     capOutput: capOutput,
     appendCapped: appendCapped,
+    wasCapped: wasCapped,
     tryParseJson: tryParseJson,
     isRunningPsEntry: isRunningPsEntry,
     psEntryId: psEntryId,

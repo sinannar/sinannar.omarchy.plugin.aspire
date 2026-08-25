@@ -389,6 +389,14 @@ Panel {
           if (exitCode !== 0) {
             section.loadFailed = true
             section.describeError = section.describeStderrText.trim()
+          } else if (Model.wasCapped(section.describeStdoutText) && Model.tryParseJson(section.describeStdoutText) === null) {
+            // A capped response that fails to parse means real resource
+            // data was truncated mid-stream, not that the AppHost has zero
+            // resources. Keep the previously displayed resources instead of
+            // letting parseDescribeResources's "malformed input -> []"
+            // fallback blank the section.
+            section.loadFailed = true
+            section.describeError = "response too large to read in full; showing the last known resource list"
           } else {
             section.loadFailed = false
             section.describeError = ""

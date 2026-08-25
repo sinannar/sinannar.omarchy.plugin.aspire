@@ -70,6 +70,15 @@ BarWidget {
         root.lastPollFailed = true
         return
       }
+      // A capped response (root.psStdoutText hit MAX_OUTPUT_CHARS) that
+      // fails to parse means real data was truncated mid-stream, not that
+      // aspire reported zero AppHosts. Treat that the same as a poll
+      // failure — keep the last good snapshot — rather than letting
+      // parsePsRunning's "malformed input -> []" fallback blank the bar.
+      if (Model.wasCapped(root.psStdoutText) && Model.tryParseJson(root.psStdoutText) === null) {
+        root.lastPollFailed = true
+        return
+      }
       root.lastPollFailed = false
       root.runningAppHosts = Model.parsePsRunning(root.psStdoutText)
     }
