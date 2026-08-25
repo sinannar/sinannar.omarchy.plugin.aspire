@@ -1,213 +1,159 @@
 ---
 name: aspire
 description: >-
-  **WORKFLOW SKILL** — Aspire CLI observer for the sinannar.omarchy.plugin.aspire
-  Omarchy bar-widget plugin. Covers aspire ps, aspire describe, aspire stop, and
-  aspire resource <name> <command> JSON output shapes, universal CLI flags,
-  state/health classification, URL safety, install locations, and error-handling
-  conventions. USE FOR: any change touching Model.js argv builders or JSON
-  parsing, or any QML change that invokes the Aspire CLI. DO NOT USE FOR:
-  aspire init / aspire new / AppHost wiring / deployment / monitoring telemetry —
-  this plugin never starts or configures an AppHost.
+  **WORKFLOW SKILL** - Top-level router for Aspire 13.4 distributed apps. Detects the
+  AppHost, enforces safety guardrails, and routes to the right sub-skill.
+  USE FOR: Aspire AppHost detected, aspire CLI, distributed app, cloud-native .NET,
+  aspire start, aspire stop, aspire resource, aspire deploy, aspire destroy, aspire publish,
+  aspire init, aspire new, aspire add, aspire integration list/search, aspire wait,
+  aspire describe, aspire ps, aspire dashboard run, aspire doctor, aspire update,
+  aspire logs, aspire otel, --include-hidden, aspireify, WithBrowserLogs, custom
+  dashboard/resource commands, .aspire/modules recovery, Playwright URL discovery.
+  DO NOT USE FOR: non-Aspire .NET projects (use dotnet directly), Azure provisioning
+  without Aspire (use azure-prepare), container-only repos with no AppHost, ordinary
+  build/test tasks.
+  INVOKES: aspire-init, aspireify, aspire-orchestration, aspire-deployment, aspire-monitoring.
+  FOR SINGLE OPERATIONS: Route directly to the matching sub-skill.
 license: MIT
 metadata:
-  author: sinannar
-  version: "1.0.0"
-  references:
-    - https://aspire.dev
-    - https://github.com/microsoft/aspire-skills
+  author: Microsoft
+  version: "0.0.1"
 ---
 
-# Aspire CLI — Observer Skill
+# Aspire
 
-> **Scope of this skill**: this plugin is a **read-mostly observer**.
-> It never runs `dotnet` directly and never starts or configures an AppHost.
-> It only reads state from AppHosts that are already running via `aspire ps`,
-> `aspire describe`, `aspire stop`, and `aspire resource <name> <command>`.
->
-> For full Aspire CLI and AppHost authoring guidance see:
-> - **[aspire.dev](https://aspire.dev)** — official Aspire documentation and install guide
-> - **[microsoft/aspire-skills](https://github.com/microsoft/aspire-skills)** — first-party agent skill pack
->   covering `aspire-orchestration`, `aspire-monitoring`, `aspire-deployment`, and more
+Use this skill when the task involves an Aspire distributed application — operating the
+AppHost or its resources through the Aspire CLI rather than falling back to ad-hoc `dotnet`,
+`docker`, or shell workflows.
 
-## What Aspire is
+## Detection
 
-[.NET Aspire](https://aspire.dev) is a cloud-ready orchestration framework for
-.NET.  An **AppHost** is a .NET project (`.csproj`) that declares the resources
-(containers, databases, services, …) making up an application.  The **Aspire CLI**
-(`aspire`) talks to a running AppHost over a local IPC channel and exposes its
-state via JSON-formatted subcommands.
+Activate when ANY signal is present. Use the **Scope** column to decide whether to route to
+the bootstrap skills (`aspire-init` / `aspireify`) or to a runtime sub-skill:
 
-## Install locations
+| Signal | How to Detect | Confidence | Scope |
+|--------|---------------|------------|-------|
+| C# AppHost | `.csproj` containing `Aspire.AppHost.Sdk` | ✅ Definitive | AppHost present → orchestration / deployment / monitoring |
+| File-based C# AppHost | `apphost.cs` with `#:sdk Aspire.AppHost.Sdk` | ✅ Definitive | AppHost present → orchestration / deployment / monitoring |
+| TypeScript AppHost | `apphost.ts` file in project | ✅ Definitive | AppHost present → orchestration / deployment / monitoring |
+| Aspire config without AppHost | `aspire.config.json` present **and no AppHost** above | High | Bootstrap → `aspireify` (skeleton dropped, needs wiring) |
+| Aspire config with AppHost | `aspire.config.json` present **and** AppHost above | High | AppHost present → orchestration / deployment / monitoring |
+| Aspire settings | `.aspire/` directory present | High | AppHost present (usually) |
+| Generated TS modules | `.aspire/modules/` directory present | High | AppHost present (TS) |
+| Service defaults | `Aspire.ServiceDefaults` in project references | Medium | AppHost present |
+| **No AppHost, no `aspire.config.json`** | None of the above and user asks to add Aspire | n/a | Bootstrap → `aspire-init` (skeleton drop) |
 
-The `aspire` binary may live in any of:
+## Default Workflow
 
-| Path | How it gets there |
-|---|---|
-| `~/.aspire/bin/aspire` | `curl -sSL https://aspire.dev/install.sh \| bash` (most common) |
-| `~/.dotnet/tools/aspire` | `dotnet tool install -g Aspire.Cli` |
-| `~/.local/bin/aspire` | Manual / distro package |
+0. **Bootstrap branch** — if **no AppHost exists** in the repo, route to
+   [`aspire-init`](../aspire-init/SKILL.md) for the skeleton drop. If an AppHost stub exists
+   but is **unwired** (no resources declared), route to [`aspireify`](../aspireify/SKILL.md).
+   Only continue with the steps below once a wired AppHost is present.
+1. Confirm workspace is Aspire — identify the AppHost
+2. `aspire start` (or `aspire start --isolated` in worktrees or whenever shared local state is risky)
+3. `aspire wait <resource>` before interacting with any resource
+4. Inspect state with `aspire describe`, `aspire otel logs`, `aspire logs`, `aspire otel traces`, and `aspire export` before making code changes
+5. Before adding integrations, use `aspire integration search <query>` when the package is unknown, then `aspire add <package>` when ready to mutate the AppHost
+6. When code changes, decide whether the AppHost model changed or only one resource changed. Re-run `aspire start` after AppHost changes; otherwise prefer resource commands, runtime watch/HMR, dashboard actions, or IDE-managed debugging as appropriate.
 
-`PATH` in non-interactive shells commonly omits these directories.  The plugin
-appends all three (plus `~/.dotnet`) to whatever `PATH` it inherits before
-running the CLI via `Model.augmentedPath()`.
+## Key Rules
 
-## Common flags (used in every call)
+- **Always** `aspire start`, **never** `dotnet run` on AppHosts
+- **Always** `aspire wait <resource>`, **never** manual HTTP polling
+- Use `aspire resource <resource-name> <command>` for resource operations such as `stop`, `start`, or `rebuild` when available
+- Do not stop or restart the whole AppHost just because one resource changed
+- Use `features.defaultWatchEnabled` only for Aspire default watch; do not treat it as per-resource rebuild, restart, or hot reload
+- Prefer a resource's own framework/runtime hot reload, HMR, or watch workflow when it already handles the change
+- **Always** `aspire docs search <topic>` before editing unfamiliar AppHost APIs
+- **Always** `aspire docs api search <query> --language csharp|typescript` for API reference before editing AppHost code
+- **Always** `--non-interactive` for agent execution
+- Use `aspire integration list --format Json` and `aspire integration search <query> --format Json` for read-only integration discovery
+- **Never** install the obsolete Aspire workload
+- **Never** edit `.aspire/modules/` directly in TypeScript AppHosts
 
-| Flag | Effect |
-|---|---|
-| `--non-interactive` | Suppresses confirmation prompts and progress spinners. Required for scripting. |
-| `--nologo` | Suppresses the Aspire copyright/version banner on stdout. |
-| `--apphost <path>` | Targets a specific AppHost by its `.csproj` path. Required whenever more than one AppHost may be running to avoid operating on the wrong one. |
-| `--format Json` | Emit machine-readable JSON instead of human-readable tables. |
+## Routing
 
-## `aspire ps --format Json`
+| Task | Route To |
+|------|----------|
+| Start, stop, wait, restart, rebuild | → [aspire-orchestration](../aspire-orchestration/SKILL.md) |
+| Create a new Aspire project from a template (`aspire new`) | → [aspire-init](../aspire-init/SKILL.md) (in-plugin) |
+| Add Aspire to an existing repo (`aspire init`, drop skeleton) | → [aspire-init](../aspire-init/SKILL.md) (in-plugin) |
+| Wire AppHost / scaffold resource graph / add integrations after `aspire init` | → [aspireify](../aspireify/SKILL.md) (in-plugin) |
+| Deploy, publish, destroy, pipeline steps | → [aspire-deployment](../aspire-deployment/SKILL.md) |
+| Logs, traces, metrics, dashboard, browser logs | → [aspire-monitoring](../aspire-monitoring/SKILL.md) |
+| Deployed app monitoring (Azure) | → `azure-diagnostics` skill (azure-skills plugin) |
 
-Lists all running AppHost processes.
+## Sub-Skills
 
-```sh
-aspire ps --format Json --non-interactive --nologo
-```
+### aspire-init
+First-run flow only. Owns the skeleton drop for repos that do **not** yet have an AppHost —
+picks `aspire new <template>` (greenfield) or `aspire init` (existing repo), runs the CLI,
+and hands off to `aspireify` for the actual wiring. Self-deactivates once the skeleton is in
+place. Do **not** use it on a repo that already contains an AppHost.
 
-### Output shape (array)
+### aspireify
+Agentic AppHost wiring after `aspire init` lands the skeleton. Scans the repo, proposes a
+resource graph (Postgres / Redis / Rabbit / etc.), edits the AppHost (C#, file-based C#, or
+TypeScript), wires `Aspire.ServiceDefaults` + OTel, validates with `aspire start`, then
+self-deactivates. Owns current AppHost authoring patterns (`AddNextJsApp`, `AddViteApp`,
+`WithBrowserLogs()`, generated `.aspire/modules/`, unified TS `withEnvironment`,
+endpoint references, and config/secret migration).
 
-```json
-[
-  {
-    "appHostPath": "/home/user/myapp/MyApp.AppHost/MyApp.AppHost.csproj",
-    "appHostPid": 12345,
-    "status": "Running",
-    "dashboardUrl": "http://localhost:18888",
-    "sdkVersion": "9.0.0"
-  }
-]
-```
+### aspire-orchestration
+Lifecycle management: start, stop, wait, resource commands, default watch/HMR guidance, and file-lock recovery.
+Safety guardrails that prevent agent self-harm. Owns `aspire ps` / `aspire describe` /
+`--include-hidden` inspection and CLI upgrades (`aspire update --self`). Does **not** edit
+AppHost code — defers to `aspireify` for wiring.
 
-| Field | Notes |
-|---|---|
-| `appHostPath` | Absolute path to the `.csproj`; stable identity and the `--apphost` value for subsequent calls. |
-| `appHostPid` | Fallback identity if `appHostPath` is absent. |
-| `status` | `"Running"` (case-insensitive check). This plugin only ever tracks `"Running"` entries. |
-| `dashboardUrl` | URL of the Aspire web dashboard for this AppHost. |
-| `sdkVersion` | Informational only. |
+### aspire-deployment
+Multi-target deployment and tear-down: `aspire deploy`, `aspire publish`, `aspire destroy`,
+`aspire do <step>`. Targets: Azure Container Apps, App Service, AKS, Kubernetes (Helm),
+Docker Compose. Owns current deployment surfaces (Front Door, NSP, AKS hosting, Foundry
+`AddPromptAgent`, JS `PublishAs*`, `--pipeline-log-level`) and 13.4 API naming.
 
-An empty array means no AppHosts are running.  Any non-zero exit code indicates a
-CLI error (Docker unavailable, `aspire` not on PATH, etc.).
+### aspire-monitoring
+Observability: `aspire logs`, `aspire otel`, `aspire describe`, `aspire export`,
+`aspire dashboard run`. Routes between local Aspire CLI diagnostics, AKS workload tooling,
+and deployed-Azure platform tools. Surfaces dashboard features (notification center,
+Rebuild command, browser-logs telemetry).
 
-## `aspire describe --apphost <path> --format Json`
+## Project-Local Skill Override
 
-Describes all resources declared by one AppHost.
+If any of the following exist project-locally (from `aspire agent init` or Aspire
+`aspire init`), **warn the user** and **defer to the project-local copy** — repo-specific
+guidance there should not be overridden by the in-plugin sibling:
 
-```sh
-aspire describe \
-  --apphost /path/to/MyApp.AppHost.csproj \
-  --format Json \
-  --non-interactive --nologo
-```
+| Project-local file | Precedence |
+|--------------------|-----------|
+| `.agents/skills/aspire/SKILL.md` | This file (top-level router) defers to it for deeper C# / TS AppHost editing, Playwright handoff, investigation workflows. |
+| `.agents/skills/aspireify/SKILL.md` | The in-plugin `aspireify` sibling defers to it for AppHost wiring. |
+| `.agents/skills/aspire-init/SKILL.md` | The in-plugin `aspire-init` sibling defers to it for the skeleton/first-run flow. |
 
-### Output shape
+**Safety guardrails from this plugin always apply** even when project-local skills are
+active.
 
-```json
-{
-  "resources": [
-    {
-      "name": "cache",
-      "displayName": "Cache",
-      "resourceType": "Container",
-      "state": "Running",
-      "healthStatus": "Healthy",
-      "dashboardUrl": "http://localhost:18888/...",
-      "urls": [
-        { "name": "http", "url": "http://localhost:8080" }
-      ],
-      "commands": {
-        "restart": {
-          "displayName": "Restart",
-          "description": "Restart this resource",
-          "state": "Enabled",
-          "sortOrder": 0
-        },
-        "stop": {
-          "displayName": "Stop",
-          "description": "Stop this resource",
-          "state": "Disabled",
-          "sortOrder": 1
-        }
-      }
-    }
-  ]
-}
-```
+## Prerequisites
 
-| Field | Notes |
-|---|---|
-| `name` | Internal resource name (used in `aspire resource <name> <command>`). |
-| `displayName` | Human-readable label for the UI. |
-| `resourceType` | E.g. `"Container"`, `"Project"`, `"Executable"`, `"Parameter"`. |
-| `state` | Raw state string. Normalised by `Model.classifyResourceState()`. |
-| `healthStatus` | `"Healthy"`, `"Unhealthy"`, `"Degraded"`, or absent/null. |
-| `urls` | Array of `{name, url}`. Only `http`/`https` URLs are safe to surface. |
-| `commands` | Object keyed by command name. Only `"state": "Enabled"` commands are offered in the UI. |
+| Requirement | Install |
+|-------------|---------|
+| .NET 10.0 SDK | https://dotnet.microsoft.com/download |
+| Aspire CLI (curl/PowerShell) | `curl -sSL https://aspire.dev/install.sh \| bash` |
+| Aspire CLI (NativeAOT global tool, .NET 10) | `dotnet tool install -g Aspire.Cli` |
 
-### Resource state categories (`Model.classifyResourceState`)
+Either install method works. The `dotnet tool install` path produces a NativeAOT binary
+(instant startup, no JIT warmup) and is recommended when .NET 10 is already present.
 
-| Raw state (case-insensitive) | Category |
-|---|---|
-| `""` / absent | `"unknown"` |
-| contains `"fail"` | `"failed"` |
-| `"Running"` | `"running"` |
-| `"Exited"`, `"Finished"`, `"FinishedSuccessfully"` | `"stopped"` (normal terminal state for one-shot jobs — not a failure) |
-| anything else | `"starting"` |
+## References
 
-### Health categories (`Model.classifyHealth`)
-
-| Raw value | Category |
-|---|---|
-| `"Healthy"` | `"healthy"` |
-| `"Unhealthy"`, `"Degraded"` | `"unhealthy"` |
-| absent / other | `"unknown"` |
-
-### URL safety constraint
-
-Only `http`/`https` endpoints are surfaced.  Other URL schemes (`tcp`, `rediss`,
-`amqp`, …) can carry embedded credentials for some resource types and are excluded
-entirely from the details panel rather than filtered value by value.
-
-## `aspire stop --apphost <path>`
-
-Stops the AppHost and all its managed resources.
-
-```sh
-aspire stop \
-  --apphost /path/to/MyApp.AppHost.csproj \
-  --non-interactive --nologo
-```
-
-This is the only destructive action the plugin offers, and it always sits behind a
-confirmation dialog.  After `aspire stop`, the next `aspire ps` poll stops
-reporting that AppHost, and the panel removes it automatically.
-
-## `aspire resource <name> <command> --apphost <path>`
-
-Runs an enabled lifecycle command on a single resource.
-
-```sh
-aspire resource cache restart \
-  --apphost /path/to/MyApp.AppHost.csproj \
-  --non-interactive --nologo
-```
-
-`<name>` is the resource's `name` field from `aspire describe` output.
-`<command>` is the key in the `commands` object (e.g. `"restart"`, `"stop"`).
-The plugin only calls commands Aspire reports as `"state": "Enabled"` — never a
-hardcoded set.
-
-## Error handling conventions
-
-- **Non-zero exit from `aspire ps`**: keep the last good AppHost snapshot; set
-  `lastPollFailed = true` to dim the bar icon.
-- **Non-zero exit from `aspire describe`**: surface stderr as "Couldn't read resource
-  status — \<stderr\>"; do not crash the panel.
-- **Non-zero exit from `aspire stop` / `aspire resource`**: surface stderr beneath
-  the resource list.
-- **Empty stdout**: treat as a parse failure (empty list), not as a hard error.
+- [aspire-13-3-breaking-changes.md](references/aspire-13-3-breaking-changes.md) — Every 13.3
+  breaking change to scrub from agent-generated code, scripts, and CI snippets (rename of
+  `--log-level`, dashboard MCP removal, `NameOutput` → `NameOutputReference`,
+  `AddAndPublishPromptAgent` removal, TS `withEnvironment*` deprecation, and the full
+  13.2 → 13.3 migration checklist).
+- [../aspire-orchestration/references/agent-workflows.md](../aspire-orchestration/references/agent-workflows.md) — Common agent workflows: worktrees, code changes, investigation, integrations, TypeScript generated APIs, secrets, deployment, and Playwright handoff.
+- [../aspire-orchestration/references/app-commands.md](../aspire-orchestration/references/app-commands.md) — App lifecycle, bootstrap, update, restore, docs, and integration discovery commands.
+- [../aspire-orchestration/references/resource-management.md](../aspire-orchestration/references/resource-management.md) — Resource wait and resource-command guidance.
+- [../aspire-monitoring/references/monitoring.md](../aspire-monitoring/references/monitoring.md) — App state, logs, traces, search filtering, dashboard links, and export workflows.
+- [../aspire-monitoring/references/playwright-handoff.md](../aspire-monitoring/references/playwright-handoff.md) — Playwright handoff after Aspire endpoint discovery.
+- [../aspire-deployment/SKILL.md](../aspire-deployment/SKILL.md) — Deployment and pipeline-step workflows.
+- [../aspireify/references/apphost-wiring.md](../aspireify/references/apphost-wiring.md) — C# and TypeScript AppHost API lookup and wiring patterns.

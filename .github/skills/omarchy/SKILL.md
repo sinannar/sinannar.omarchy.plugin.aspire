@@ -1,203 +1,294 @@
 ---
 name: omarchy
-description: >-
-  **WORKFLOW SKILL** — Omarchy/Quickshell plugin conventions for the
-  sinannar.omarchy.plugin.aspire bar-widget plugin. Covers BarWidget, Panel,
-  KeyboardPanel, IpcHandler, Process, and StdioCollector component contracts;
-  manifest schema; the /usr/bin/env PATH-resolution constraint; settings;
-  validation commands; and color/style helpers. USE FOR: any change touching
-  BarWidget.qml, Panel.qml, manifest.json, or the QML layer of the plugin.
-  DO NOT USE FOR: Model.js parsing logic (no QML dependency there) or anything
-  not specific to Omarchy/Quickshell plugin structure.
-license: MIT
-metadata:
-  author: sinannar
-  version: "1.0.0"
-  references:
-    - https://omarchy.org
-    - https://github.com/basecamp/omarchy
-    - https://quickshell.de
+description: >
+  REQUIRED for end-user customization of Linux desktop, window manager, or system config.
+  Use when editing ~/.config/hypr/, ~/.config/omarchy/,
+  ~/.config/alacritty/, ~/.config/foot/, ~/.config/kitty/, or ~/.config/ghostty/.
+  Triggers: Hyprland, window rules, animations, keybindings, monitors, gaps, borders,
+  blur, opacity, omarchy-shell, bar, terminal config, themes, background,
+  night light, idle, lock screen, screenshots, reminders, layer rules, workspace
+  settings, display config, and user-facing omarchy commands. Excludes Omarchy
+  source development through `omarchy dev link` workflows.
 ---
 
-# Omarchy / Quickshell Plugin — Skill
+# Omarchy Skill
 
-> For full Omarchy documentation see:
-> - **[omarchy.org](https://omarchy.org)** — official Omarchy site and manual
-> - **[github.com/basecamp/omarchy](https://github.com/basecamp/omarchy)** — source repository and `manual/` directory
-> - **[quickshell.de](https://quickshell.de)** — Quickshell QML shell documentation
+Manage [Omarchy](https://omarchy.org/) Linux systems - a beautiful, modern, opinionated Arch Linux distribution with Hyprland.
 
-## What Omarchy is
+This skill is for end-user customization on installed systems.
+It is not for contributing to Omarchy source code.
 
-Omarchy is a minimal, opinionated Linux desktop environment built on Wayland by
-Basecamp/DHH.  Its shell layer is [Quickshell](https://quickshell.de/) — a QML-
-based compositor shell.  Plugins extend the shell's status bar (and optionally pop
-up panels) without modifying core shell code.
+## When This Skill MUST Be Used
 
-## Plugin manifest (`manifest.json`)
+**ALWAYS invoke this skill for end-user requests involving ANY of these:**
 
-Every plugin must declare at least:
+- Editing ANY file in `~/.config/hypr/` (window rules, animations, keybindings, monitors, etc.)
+- Editing `~/.config/omarchy/shell.json` (status bar layout, widgets)
+- Editing terminal configs (alacritty, foot, kitty, ghostty)
+- Editing ANY file in `~/.config/omarchy/`
+- Window behavior, animations, opacity, blur, gaps, borders
+- Layer rules, workspace settings, display/monitor configuration
+- Themes, backgrounds, fonts, appearance changes
+- User-facing `omarchy` commands (`omarchy theme ...`, `omarchy refresh ...`, `omarchy restart ...`, etc.)
+- Screenshots, screen recording, reminders, night light, idle behavior, lock screen
 
-```json
-{
-  "schemaVersion": 1,
-  "id": "<author>.<pluginName>",
-  "name": "Human-readable name",
-  "version": "1.0.0",
-  "author": "<author>",
-  "license": "MIT",
-  "kinds": ["bar-widget"],
-  "entryPoints": { "barWidget": "BarWidget.qml" },
-  "barWidget": {
-    "displayName": "...",
-    "description": "...",
-    "category": "Development",
-    "allowMultiple": false
-  }
-}
+**If you're about to edit a config file in ~/.config/ on this system, STOP and use this skill first.**
+
+**Do NOT use this skill for Omarchy development tasks** (editing the Omarchy source tree, creating migrations, or running `omarchy dev ...` workflows).
+
+## Topic Guides
+
+Deeper instructions for common areas live next to this file. Read the
+matching guide before starting:
+
+- [`hyprland.md`](hyprland.md) - keybindings, monitors, window rules, and other Hyprland config
+- [`plugins.md`](plugins.md) - the Omarchy shell: bar layout, widgets, plugins, idle behavior
+- [`theming.md`](theming.md) - themes, backgrounds, and fonts
+- [`hooks.md`](hooks.md) - automation hooks that run on system events
+- [`capture.md`](capture.md) - screenshots, screen recordings, OCR text capture, and file sharing
+- [`contributing.md`](contributing.md) - reporting Omarchy bugs and submitting fixes upstream
+
+## Critical Safety Rules
+
+For privileged commands, follow the Privilege Escalation rules below: `sudo` when a terminal is available for the password prompt, `pkexec` when it is not. Do not wrap commands that already manage privilege elevation themselves.
+
+**For end-user customization tasks, NEVER modify anything in `/usr/share/omarchy/`** - but READING is safe and encouraged.
+
+This directory is owned by the omarchy package. Any local changes will be
+overwritten on the next `omarchy update`.
+
+```
+/usr/share/omarchy/     # READ-ONLY - NEVER EDIT (reading is OK)
+├── bin/                    # Command source (packaged binaries are on PATH)
+├── config/                 # Default config templates
+├── themes/                 # Stock themes
+├── default/                # System defaults
+├── shell/                  # Omarchy shell source and defaults
+├── migrations/             # Update migrations
+└── install/                # Installation scripts
 ```
 
-`id` must be globally unique (by convention `<author>.<pluginName>`).
-`allowMultiple: false` prevents the user from adding the widget twice.
+**Reading `/usr/share/omarchy/` is SAFE and useful** - do it freely to:
+- Understand how omarchy commands work: `omarchy theme set --help` or `cat $(which omarchy-theme-set)`
+- See default configs before customizing: `cat "$OMARCHY_PATH/config/omarchy/shell.json"`
+- Check stock theme files to copy for customization
+- Reference default hyprland settings: `cat /usr/share/omarchy/default/hypr/*`
 
-## QML module imports used in this plugin
+**Always use these safe locations instead:**
+- `~/.config/` - User configuration (safe to edit)
+- `~/.config/omarchy/themes/<custom-name>/` - Custom themes
+- `~/.config/omarchy/hooks/` - Custom automation hooks
 
-```qml
-import QtQuick
-import Quickshell
-import Quickshell.Io    // Process, StdioCollector
-import qs.Commons       // Color, Style, Quickshell.env()
-import qs.Ui            // BarWidget, Panel, KeyboardPanel, WidgetButton, …
+If the request is to develop Omarchy itself, this skill is out of scope. Follow repository development instructions instead of this skill.
+
+## Privilege Escalation
+
+For an interactive script or command run in a visible terminal, use `sudo` for
+privileged work. Omarchy may grant passwordless `sudo` access to particular
+commands, and the terminal is the appropriate place to request a password
+when one is needed.
+
+Use `pkexec` only when the caller cannot interact with a terminal or cannot
+enter a password there, such as a command launched by an agent or a graphical
+background process. Do not replace `sudo` with `pkexec` merely because a
+command changes system state.
+
+## System Architecture
+
+Omarchy is built on:
+
+| Component | Purpose | Config Location |
+|-----------|---------|-----------------|
+| **Arch Linux** | Base OS | `/etc/`, `~/.config/` |
+| **Hyprland** | Wayland compositor/WM | `~/.config/hypr/` |
+| **Omarchy shell** | Status bar + notifications (Quickshell) | `~/.config/omarchy/shell.json` |
+| **Launcher/menus** | Quickshell menu | `~/.config/omarchy/extensions/omarchy-menu.jsonc` |
+| **Alacritty/Foot/Kitty/Ghostty** | Terminals | `~/.config/<terminal>/` |
+| **Omarchy OSD** | On-screen display | Quickshell plugin |
+
+## Command Discovery
+
+Omarchy ships a single `omarchy` CLI that dispatches to all `omarchy-*` binaries via `omarchy <group> <action>`. Always prefer this form — it is self-documenting and stable. The underlying `omarchy-*` binaries still exist on `PATH` and remain safe to read for source.
+
+```bash
+# List every documented command and its summary (--all includes hidden commands)
+omarchy commands
+
+# Show the commands inside a group
+omarchy theme --help
+omarchy refresh --help
+omarchy restart --help
+
+# Show help for a specific command (does not execute it)
+omarchy theme set --help
+
+# Machine-readable listing (binary, route, summary, args, aliases)
+omarchy commands --json
+
+# Read a command's source to understand it
+cat $(which omarchy-theme-set)
 ```
 
-`qs.Commons` and `qs.Ui` are Omarchy-internal modules, not Qt-standard ones.
+### Command Groups
 
-## `BarWidget` root component
+Run `omarchy --help` for the full list. The most common groups:
 
-Every bar-widget plugin's entry-point QML file must have `BarWidget` as its
-root component (from `qs.Ui`).  Key properties inherited from `BarWidget`:
+| Group | Purpose | Example |
+|-------|---------|---------|
+| `omarchy refresh` | Reset config to defaults (backs up first) | `omarchy refresh shell` |
+| `omarchy restart` | Restart a service/app | `omarchy restart shell` |
+| `omarchy toggle` | Toggle feature on/off | `omarchy toggle nightlight` |
+| `omarchy theme` | Theme management | `omarchy theme set <name>` |
+| `omarchy bar` | Bar layout and widgets | `omarchy bar move omarchy.clock --section right` |
+| `omarchy plugin` | Manage/clone shell plugins | `omarchy plugin clone omarchy.clock` |
+| `omarchy hook` | Install automation hooks | `omarchy hook install theme-set <script>` |
+| `omarchy install` | Install optional software / packages | `omarchy install docker dbs` |
+| `omarchy launch` | Launch apps | `omarchy launch browser` |
+| `omarchy capture` | Screenshots and recordings | `omarchy capture screenshot` |
+| `omarchy reminder` | Desktop notification reminders | `omarchy reminder 15 "Pickup Jack"` |
+| `omarchy pkg` | Package management | `omarchy pkg add <pkg>` |
+| `omarchy setup` | Interactive setup wizards | `omarchy setup security fingerprint` |
+| `omarchy update` | System updates | `omarchy update` |
 
-| Property | Type | Description |
-|---|---|---|
-| `moduleName` | `string` | Must match `manifest.json` `id`. |
-| `bar` | `Bar` | The bar this widget lives in (color, font, IPC target, …). |
-| `settings` | `object` | Per-widget settings persisted in `~/.config/omarchy/shell.json`. |
+## Configuration Locations
 
-Helper: `setting(key, default)` — reads a typed setting value; numbers need
-`--json` when set via CLI.
+Hyprland config lives in `~/.config/hypr/` — see [`hyprland.md`](hyprland.md).
+The Omarchy shell (bar, notifications, plugins, idle) is configured in
+`~/.config/omarchy/shell.json` — see [`plugins.md`](plugins.md).
 
-Sizing convention: set `implicitWidth`/`implicitHeight` from the inner button,
-and bind `visible` to the button's `hasVisualContent` so the bar only reserves
-space when the widget has something to show.
+### Terminals
 
-## `Panel` and `KeyboardPanel`
-
-`Panel` (from `qs.Ui`) is the floating popup that the bar widget opens.  It
-must be loaded lazily via a `Loader` in `BarWidget.qml` so it does not block
-bar startup.
-
-Key properties set by `BarWidget.qml` on the panel (via `injectPanel()`):
-
-| Property | Set to |
-|---|---|
-| `bar` | The bar object |
-| `settings` | Widget settings |
-| `anchorItem` | The bar button used as anchor point |
-| `hostWidget` | The `BarWidget` root (for calling `refresh()`) |
-| `runningAppHosts` | The list computed by the widget |
-
-`KeyboardPanel` (inner wrapper inside `Panel`) provides: focus management,
-size clamping (`fittedContentWidth` / `fittedContentHeight`), anchor, and
-keyboard close/tab support via `PanelKeyCatcher`.
-
-## `IpcHandler`
-
-```qml
-IpcHandler {
-  target: "<module-id>"
-
-  function refresh(): void { … }
-  function open(): void    { … }
-  function close(): void   { … }
-  function show(): void    { … }
-  function hide(): void    { … }
-  function toggle(): void  { … }
-}
+```
+~/.config/alacritty/alacritty.toml
+~/.config/foot/foot.ini
+~/.config/kitty/kitty.conf
+~/.config/ghostty/config
 ```
 
-Called from the command line with:
-`omarchy-shell <module-id> <functionName>`
+**Command:** `omarchy restart terminal`
 
-Only one `IpcHandler` per plugin should manage IPC (`manageIpc: false` on
-`Panel` suppresses the duplicate).
+### Other Configs
 
-## `Process` and `StdioCollector` (Quickshell.Io)
+| App | Location |
+|-----|----------|
+| btop | `~/.config/btop/btop.conf` |
+| fastfetch | `/etc/fastfetch/config.jsonc` default; `~/.config/fastfetch/config.jsonc` user override |
+| lazygit | `~/.config/lazygit/config.yml` |
+| starship | `~/.config/starship.toml` |
+| git | `~/.config/git/config` |
 
-```qml
-Process {
-  id: myProcess
-  command: ["/usr/bin/env", "aspire", ...args]   // argv array — NOT a shell string
-  environment: ({ "PATH": "..." })               // override child env vars
+## Safe Customization Patterns
 
-  stdout: StdioCollector { id: myStdout; waitForEnd: true }
-  stderr: StdioCollector { id: myStderr; waitForEnd: true }
+### Edit User Config Directly
 
-  onExited: function(exitCode) {
-    // myStdout.text and myStderr.text are fully populated here
-  }
-}
+For simple changes, edit files in `~/.config/`:
 
-// Start by flipping `running`:
-myProcess.running = true
+```bash
+# 1. Read current config
+cat ~/.config/hypr/bindings.lua
+
+# 2. Backup before changes
+cp ~/.config/hypr/bindings.lua ~/.config/hypr/bindings.lua.bak.$(date +%s)
+
+# 3. Make changes with Edit tool
+
+# 4. Apply changes
+# - Hyprland: auto-reloads on save, but MUST validate with `hyprctl reload` and `hyprctl configerrors`
+# - Omarchy shell: shell.json and user plugin code under ~/.config/omarchy/plugins/ hot-reload on save
+# - Menus/launcher: ~/.config/omarchy/extensions/omarchy-menu.jsonc hot-reloads on save
+# - Terminals: apply with `omarchy restart terminal` (reloads running terminals; foot picks changes up in new windows)
 ```
 
-`waitForEnd: true` on `StdioCollector` buffers all output until the process
-exits, so `text` is complete inside `onExited`.
+### Reset to Defaults -- ALWAYS SEEK USER CONFIRMATION BEFORE RUNNING
 
-**PATH resolution order**: `command[0]` is resolved against the *inherited*
-PATH **before** the `environment` override is applied.  Always use
-`["/usr/bin/env", "<binary>", ...args]` so `/usr/bin/env` (always reachable)
-does the re-resolution after the PATH override takes effect.
+When customizations go wrong:
 
-## Settings
+```bash
+# Reset specific config (creates backup automatically)
+omarchy refresh shell
+omarchy refresh hyprland
 
-Set externally with:
-```sh
-omarchy bar set <module-id> <key> <value>
-omarchy bar set <module-id> <key> <value> --json   # numeric/boolean values
+# The refresh command:
+# 1. Backs up current config with timestamp
+# 2. Copies default from $OMARCHY_PATH/config/
+# 3. Restarts the component where the refresh needs it (e.g. `refresh shell`)
 ```
 
-Read inside QML with `setting("key", defaultValue)`.
+## System Commands
 
-## Lifecycle management CLI
-
-```sh
-omarchy plugin add <git-url> [--enable]
-omarchy plugin remove <module-id>
-omarchy plugin list [--json]
-omarchy plugin validate <plugin-dir>
-omarchy bar move <module-id> --section <left|center|right>
-omarchy-shell <module-id> <ipc-action>
+```bash
+omarchy update                  # Full system update
+omarchy version                 # Show Omarchy version
+omarchy debug --no-sudo --print # Debug info (ALWAYS use these flags)
+omarchy system lock             # Lock screen
+omarchy system shutdown         # Shutdown
+omarchy system reboot           # Reboot
 ```
 
-## Validation
+**IMPORTANT:** Always run `omarchy debug` with `--no-sudo --print` flags to avoid interactive sudo prompts that will hang the terminal.
 
-```sh
-omarchy plugin validate ~/.config/omarchy/plugins/<module-id>
-qmllint -I "$OMARCHY_PATH/shell" BarWidget.qml Panel.qml
+## Troubleshooting
+
+```bash
+# Get debug information (ALWAYS use these flags to avoid interactive prompts)
+omarchy debug --no-sudo --print
+
+# Reset specific config to defaults
+omarchy refresh <app>
+
+# Refresh specific config file
+# config-file path is relative to ~/.config/
+# eg. `omarchy refresh config hypr/hyprland.lua` will refresh ~/.config/hypr/hyprland.lua
+omarchy refresh config <config-file>
+
+# Full reinstall of configs (nuclear option)
+omarchy reinstall
 ```
 
-These two commands together catch manifest schema errors and QML type
-violations respectively.  Run them (via `checks/validate.sh`) before every
-commit that touches QML or `manifest.json`.  These require a local Omarchy
-installation and cannot run on GitHub CI.
+## Decision Framework
 
-## Color and style helpers (qs.Commons / qs.Ui)
+When user requests system changes:
 
-| Symbol | Description |
-|---|---|
-| `Color.foreground` | Default bar foreground colour |
-| `Style.font.family` | Default bar font |
-| `Style.space(n)` | Scale-aware pixel size (pass logical pixels) |
-| `bar.foreground` | Bar-specific foreground (prefer over `Color.foreground` when `bar` is non-null) |
-| `bar.fontFamily` | Bar-specific font family |
-| `Qt.darker(color, factor)` | Darken a colour (used to dim the icon when CLI is unavailable) |
+1. **Is it a stock omarchy command?** Use it directly
+2. **Is it a config edit?** Edit in `~/.config/`, never `/usr/share/omarchy/`
+3. **Is it a theme customization?** Follow [`theming.md`](theming.md); create a NEW custom theme directory
+4. **Is it automation?** Follow [`hooks.md`](hooks.md); use `omarchy hook install` and the hook `.d` directories
+5. **Is it a package install?** Use `omarchy pkg add <pkgs...>` (or `omarchy pkg aur add <pkgs...>` for AUR-only packages)
+6. **Is it built-in shell/plugin code?** Follow [`plugins.md`](plugins.md); clone it with `omarchy plugin clone`, never edit the packaged copy
+7. **Unsure if command exists?** Run `omarchy commands` (or `omarchy <group> --help` for one group)
+
+### Reminder Requests
+
+When the user asks to set a reminder, use `omarchy reminder <minutes> [message]` directly. Convert natural language durations to minutes and title-case short reminder labels when appropriate.
+
+```bash
+omarchy reminder 15 "Pickup Jack"
+omarchy reminder 60 "Check laundry"
+omarchy reminder show
+omarchy reminder clear
+```
+
+## Out of Scope
+
+This skill intentionally does not cover Omarchy source development. Do not use this skill for:
+- Editing files in `/usr/share/omarchy/` (`bin/`, `config/`, `default/`, `shell/`, `themes/`, `migrations/`, etc.)
+- Creating or editing migrations
+- Running `omarchy dev ...` commands
+
+## Example Requests
+
+- "Change my theme to catppuccin" -> `omarchy theme set catppuccin`
+- "Add a keybinding for Super+E to open file manager" -> Check existing bindings first, call `hl.unbind` if needed, then `o.bind` in `~/.config/hypr/bindings.lua`
+- "Configure my external monitor" -> Edit `~/.config/hypr/monitors.lua`
+- "Make the window gaps smaller" -> Edit `~/.config/hypr/looknfeel.lua`
+- "Turn on night light" -> `omarchy toggle nightlight` (for time-based schedules, edit `~/.config/hypr/hyprsunset.conf` profiles, then `omarchy restart hyprsunset`)
+- "Set a reminder to pickup jack in 15 minutes" -> `omarchy reminder 15 "Pickup Jack"`
+- "Show my reminders" -> `omarchy reminder show`
+- "Clear all reminders" -> `omarchy reminder clear`
+- "Customize the catppuccin theme colors" -> Overlay: put an edited `colors.toml` in `~/.config/omarchy/themes/catppuccin/`, then re-apply the theme (see `theming.md`)
+- "Run a script every time I change themes" -> Install it with `omarchy hook install theme-set <script>`
+- "Change how workspace labels are rendered" -> Clone `omarchy.workspaces`, which switches the bar to `<username>.workspaces`, then edit the clone
+- "Lock after ten minutes" -> Set `idle.lock` to `600` in `~/.config/omarchy/shell.json`
+- "Reset shell/bar to defaults" -> `omarchy refresh shell`
+- "Record my screen" -> `omarchy screenrecord --fullscreen`, then `omarchy screenrecord --stop-recording` (see `capture.md`)
+- "Report this bug to Omarchy" -> Gather diagnostics and a capture of the problem, then file it (see `contributing.md`)

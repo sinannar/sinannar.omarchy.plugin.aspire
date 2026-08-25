@@ -9,10 +9,13 @@ already running.
 
 ## Relevant skills
 
-Domain context for this plugin is captured in two agent skill files under
-`.github/skills/`.  Read them before making changes that touch the areas they
-cover — they replace the locally-installed Omarchy/Aspire CLI skills that are
-not available on GitHub CI:
+Domain context for this plugin is captured in agent skill files under
+`.github/skills/`. These are copied verbatim from the locally-installed
+Omarchy/Aspire CLI skills (`~/.agents/skills/`) used for day-to-day
+development on this repo, so the same skill content is available on
+GitHub's cloud agent runners where no local Omarchy or Aspire install
+exists. Read the relevant one before making changes that touch the areas
+it covers:
 
 - **[`omarchy`](.github/skills/omarchy/SKILL.md)** — for anything touching the
   bar widget, panel, IPC, settings, or how Quickshell plugins are
@@ -24,6 +27,19 @@ not available on GitHub CI:
   before changing how `Model.js` builds argv or parses CLI output.  External
   references: [aspire.dev](https://aspire.dev) and the first-party
   [microsoft/aspire-skills](https://github.com/microsoft/aspire-skills) pack.
+- **[`aspire-orchestration`](.github/skills/aspire-orchestration/SKILL.md)**,
+  **[`aspire-monitoring`](.github/skills/aspire-monitoring/SKILL.md)**,
+  **[`aspire-deployment`](.github/skills/aspire-deployment/SKILL.md)**,
+  **[`aspire-init`](.github/skills/aspire-init/SKILL.md)** — the rest of the
+  local Aspire CLI skill set (lifecycle, diagnostics, deployment, scaffolding).
+  This plugin's own scope stays read-mostly (`ps`/`describe`/`stop`/
+  `resource <name> <command>` only — it never starts, deploys, or configures
+  an AppHost), but these are included alongside `aspire` so the full local
+  skill set stays in sync in one place.
+
+When the local skills under `~/.agents/skills/` change, re-sync
+`.github/skills/` from them (copy, don't hand-edit) to keep this repo's
+GitHub-side agent context matching local development.
 
 ## Files
 

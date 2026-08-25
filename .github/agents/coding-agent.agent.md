@@ -17,9 +17,11 @@ an AppHost itself.
 
 ## Domain skills
 
-This agent uses two skills for domain-specific context that cannot be
-inferred from the code alone.  Read them before making any change that
-touches the areas they cover:
+This agent carries the same skills used for local development on this
+plugin (normally sourced from the Omarchy/Aspire CLI installs), copied
+verbatim into `.github/skills/` so they are available on GitHub's cloud
+agent runners where no local Omarchy or Aspire install exists. Read the
+relevant skill before making any change that touches the areas it covers:
 
 - **`omarchy`** ([`.github/skills/omarchy/SKILL.md`](.github/skills/omarchy/SKILL.md))
   — Omarchy/Quickshell plugin structure, QML component contracts (`BarWidget`,
@@ -34,6 +36,30 @@ touches the areas they cover:
   (`--non-interactive --nologo --apphost`), state/health classification
   rules, URL safety constraints, and error-handling expectations.
   Reference: [aspire.dev](https://aspire.dev), [microsoft/aspire-skills](https://github.com/microsoft/aspire-skills)
+
+- **`aspire-orchestration`** ([`.github/skills/aspire-orchestration/SKILL.md`](.github/skills/aspire-orchestration/SKILL.md))
+  — lifecycle safety guardrails (`aspire start`/`stop`/`wait`, file-lock
+  recovery). This plugin only ever calls `aspire ps`, `aspire describe`,
+  `aspire stop`, and `aspire resource <name> <command>` — it never starts an
+  AppHost — but this skill documents the guardrails other tooling in the
+  ecosystem expects and is useful context if a task ever touches AppHost
+  lifecycle expectations.
+
+- **`aspire-monitoring`** ([`.github/skills/aspire-monitoring/SKILL.md`](.github/skills/aspire-monitoring/SKILL.md))
+  — local diagnostics (`aspire logs`, `aspire otel logs/traces`, dashboard).
+  Not currently used by this plugin (it doesn't surface logs/traces), but
+  kept for context if that scope ever expands.
+
+- **`aspire-deployment`** ([`.github/skills/aspire-deployment/SKILL.md`](.github/skills/aspire-deployment/SKILL.md))
+  and **`aspire-init`** ([`.github/skills/aspire-init/SKILL.md`](.github/skills/aspire-init/SKILL.md))
+  — AppHost scaffolding and deployment. Out of scope for this plugin (it
+  never runs `dotnet` or configures an AppHost) but included for completeness
+  since they are part of the same locally-installed skill set.
+
+> These skills were copied as-is from the local `~/.agents/skills/` install
+> used for day-to-day development on this repo, not rewritten for GitHub.
+> When the local skills are updated, re-sync `.github/skills/` from them
+> rather than hand-editing the copies here.
 
 ## Architecture reminders
 
