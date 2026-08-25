@@ -261,8 +261,10 @@ function aspireCommand(args) {
 // entirely. Rather than depend on shell rc semantics, append the well-known
 // Aspire/.NET tool locations directly to whatever PATH was inherited, so
 // `aspire` resolves the same way it would from a terminal.
+// `~/.aspire/bin` covers installs done via the aspire.dev install script,
+// which places the `aspire` binary there rather than in ~/.dotnet/tools.
 function augmentedPath(currentPath, home) {
-  var extra = home ? [home + "/.dotnet", home + "/.dotnet/tools", home + "/.local/bin"] : []
+  var extra = home ? [home + "/.aspire/bin", home + "/.dotnet", home + "/.dotnet/tools", home + "/.local/bin"] : []
   var existing = String(currentPath || "").split(":").filter(function (p) { return p.length > 0 })
   var seen = {}
   var result = []
