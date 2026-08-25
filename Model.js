@@ -11,25 +11,27 @@
 // A malicious or unexpectedly bloated `aspire ps`/`aspire describe` response
 // is therefore unable to exhaust memory in the long-lived shell process.
 //
-// MAX_OUTPUT_BYTES  – bytes accepted from stdout before the text is truncated.
-//   1 MB is far above any realistic Aspire CLI response; 100+ AppHosts/resources
-//   with all fields populated compresses well under 200 KB.
+// MAX_OUTPUT_CHARS  – UTF-16 code units accepted from stdout before truncation.
+//   JavaScript String.length counts UTF-16 code units (not bytes); for the
+//   ASCII-heavy JSON that Aspire emits each code unit equals one byte, so the
+//   limit behaves as a ~1 MB byte cap in practice. At most 2 MB of V8 heap
+//   per collector is an acceptable bound even for fully BMP Unicode input.
 // MAX_PS_ENTRIES    – maximum AppHost entries accepted from `aspire ps`.
 // MAX_RESOURCES     – maximum resource entries accepted from `aspire describe`.
 // MAX_URLS          – maximum URL endpoints kept per resource.
 // MAX_COMMANDS      – maximum resource commands kept per resource.
-var MAX_OUTPUT_BYTES = 1 * 1024 * 1024   // 1 MB
+var MAX_OUTPUT_CHARS = 1 * 1024 * 1024   // ~1 MB for ASCII-heavy JSON
 var MAX_PS_ENTRIES   = 50
 var MAX_RESOURCES    = 500
 var MAX_URLS         = 20
 var MAX_COMMANDS     = 20
 
-// Truncates CLI stdout/stderr to MAX_OUTPUT_BYTES before any further
+// Truncates CLI stdout/stderr to MAX_OUTPUT_CHARS before any further
 // processing. Call this on every raw string received from a Process before
 // passing it to a parse function so the collector buffer size is irrelevant.
 function capOutput(text) {
   var s = String(text === undefined || text === null ? "" : text)
-  if (s.length > MAX_OUTPUT_BYTES) return s.substring(0, MAX_OUTPUT_BYTES)
+  if (s.length > MAX_OUTPUT_CHARS) return s.substring(0, MAX_OUTPUT_CHARS)
   return s
 }
 
@@ -89,8 +91,9 @@ function parsePsRunning(jsonText) {
       dashboardUrl: typeof entry.dashboardUrl === "string" ? entry.dashboardUrl : "",
       sdkVersion: String(entry.sdkVersion || "")
     })
-    // Stop accepting entries once the cap is reached; realistic deployments
-    // never approach this, and an oversized response is more likely malicious.
+    // Cap applied in input order (before the label sort below) so entries
+    // beyond the limit are simply ignored rather than causing unbounded
+    // allocation. Realistic deployments never approach MAX_PS_ENTRIES.
     if (running.length >= MAX_PS_ENTRIES) break
   }
   running.sort(function(a, b) { return a.label === b.label ? 0 : (a.label < b.label ? -1 : 1) })
@@ -314,7 +317,7 @@ function augmentedPath(currentPath, home) {
 
 if (typeof module !== "undefined") {
   module.exports = {
-    MAX_OUTPUT_BYTES: MAX_OUTPUT_BYTES,
+    MAX_OUTPUT_CHARS: MAX_OUTPUT_CHARS,
     MAX_PS_ENTRIES: MAX_PS_ENTRIES,
     MAX_RESOURCES: MAX_RESOURCES,
     MAX_URLS: MAX_URLS,
