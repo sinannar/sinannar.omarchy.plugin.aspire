@@ -9,19 +9,21 @@ already running.
 
 ## Relevant skills
 
-Domain context for this plugin is captured in two skill files under
-`.github/agents/`.  Read them before making changes that touch the areas they
+Domain context for this plugin is captured in two agent skill files under
+`.github/skills/`.  Read them before making changes that touch the areas they
 cover — they replace the locally-installed Omarchy/Aspire CLI skills that are
 not available on GitHub CI:
 
-- **[`omarchy`](.github/agents/omarchy.md)** — for anything touching the bar
-  widget, panel, IPC, settings, or how Quickshell plugins are
-  structured/loaded in Omarchy's shell.
-- **[`aspire`](.github/agents/aspire.md)** (and its sub-skills, e.g.
-  `aspire-monitoring`) — for Aspire CLI behavior this plugin depends on
-  (`aspire ps`, `aspire describe`, `aspire stop`,
+- **[`omarchy`](.github/skills/omarchy/SKILL.md)** — for anything touching the
+  bar widget, panel, IPC, settings, or how Quickshell plugins are
+  structured/loaded in Omarchy's shell.  External reference:
+  [omarchy.org](https://omarchy.org) / [github.com/basecamp/omarchy](https://github.com/basecamp/omarchy).
+- **[`aspire`](.github/skills/aspire/SKILL.md)** — for Aspire CLI behavior this
+  plugin depends on (`aspire ps`, `aspire describe`, `aspire stop`,
   `aspire resource <name> <command>`), including output shapes and flags,
-  before changing how `Model.js` builds argv or parses CLI output.
+  before changing how `Model.js` builds argv or parses CLI output.  External
+  references: [aspire.dev](https://aspire.dev) and the first-party
+  [microsoft/aspire-skills](https://github.com/microsoft/aspire-skills) pack.
 
 ## Files
 

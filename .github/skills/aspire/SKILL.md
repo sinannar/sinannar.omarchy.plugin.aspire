@@ -1,16 +1,42 @@
-# Aspire CLI knowledge
+---
+name: aspire
+description: >-
+  **WORKFLOW SKILL** — Aspire CLI observer for the sinannar.omarchy.plugin.aspire
+  Omarchy bar-widget plugin. Covers aspire ps, aspire describe, aspire stop, and
+  aspire resource <name> <command> JSON output shapes, universal CLI flags,
+  state/health classification, URL safety, install locations, and error-handling
+  conventions. USE FOR: any change touching Model.js argv builders or JSON
+  parsing, or any QML change that invokes the Aspire CLI. DO NOT USE FOR:
+  aspire init / aspire new / AppHost wiring / deployment / monitoring telemetry —
+  this plugin never starts or configures an AppHost.
+license: MIT
+metadata:
+  author: sinannar
+  version: "1.0.0"
+  references:
+    - https://aspire.dev
+    - https://github.com/microsoft/aspire-skills
+---
+
+# Aspire CLI — Observer Skill
+
+> **Scope of this skill**: this plugin is a **read-mostly observer**.
+> It never runs `dotnet` directly and never starts or configures an AppHost.
+> It only reads state from AppHosts that are already running via `aspire ps`,
+> `aspire describe`, `aspire stop`, and `aspire resource <name> <command>`.
+>
+> For full Aspire CLI and AppHost authoring guidance see:
+> - **[aspire.dev](https://aspire.dev)** — official Aspire documentation and install guide
+> - **[microsoft/aspire-skills](https://github.com/microsoft/aspire-skills)** — first-party agent skill pack
+>   covering `aspire-orchestration`, `aspire-monitoring`, `aspire-deployment`, and more
 
 ## What Aspire is
 
 [.NET Aspire](https://aspire.dev) is a cloud-ready orchestration framework for
-.NET.  An **AppHost** is a .NET project (`.csproj`) that declares the
-resources (containers, databases, services, …) making up an application and
-wires them together at startup.  The **Aspire CLI** (`aspire`) talks to a
-running AppHost over a local IPC channel and exposes its state via JSON-
-formatted subcommands.
-
-This plugin is a read-mostly observer: it never runs `dotnet` directly and
-never starts an AppHost — it only reads what is already running.
+.NET.  An **AppHost** is a .NET project (`.csproj`) that declares the resources
+(containers, databases, services, …) making up an application.  The **Aspire CLI**
+(`aspire`) talks to a running AppHost over a local IPC channel and exposes its
+state via JSON-formatted subcommands.
 
 ## Install locations
 
@@ -18,13 +44,13 @@ The `aspire` binary may live in any of:
 
 | Path | How it gets there |
 |---|---|
-| `~/.aspire/bin/aspire` | `curl \| bash` from aspire.dev (most common) |
+| `~/.aspire/bin/aspire` | `curl -sSL https://aspire.dev/install.sh \| bash` (most common) |
 | `~/.dotnet/tools/aspire` | `dotnet tool install -g Aspire.Cli` |
 | `~/.local/bin/aspire` | Manual / distro package |
 
 `PATH` in non-interactive shells commonly omits these directories.  The plugin
 appends all three (plus `~/.dotnet`) to whatever `PATH` it inherits before
-running the CLI.
+running the CLI via `Model.augmentedPath()`.
 
 ## Common flags (used in every call)
 
@@ -37,7 +63,7 @@ running the CLI.
 
 ## `aspire ps --format Json`
 
-Lists all running AppHost processes managed by the local Aspire session.
+Lists all running AppHost processes.
 
 ```sh
 aspire ps --format Json --non-interactive --nologo
@@ -57,18 +83,16 @@ aspire ps --format Json --non-interactive --nologo
 ]
 ```
 
-Key fields:
-
 | Field | Notes |
 |---|---|
-| `appHostPath` | Absolute path to the `.csproj`; used as a stable identity and as `--apphost` value in subsequent calls. |
+| `appHostPath` | Absolute path to the `.csproj`; stable identity and the `--apphost` value for subsequent calls. |
 | `appHostPid` | Fallback identity if `appHostPath` is absent. |
-| `status` | `"Running"` (case-insensitive check). Other values (`"Stopped"`, etc.) are never tracked by this plugin. |
+| `status` | `"Running"` (case-insensitive check). This plugin only ever tracks `"Running"` entries. |
 | `dashboardUrl` | URL of the Aspire web dashboard for this AppHost. |
-| `sdkVersion` | SDK version string; informational only. |
+| `sdkVersion` | Informational only. |
 
-An empty array means no AppHosts are running.  Any non-zero exit code
-indicates a CLI error (Docker unavailable, `aspire` not on PATH, etc.).
+An empty array means no AppHosts are running.  Any non-zero exit code indicates a
+CLI error (Docker unavailable, `aspire` not on PATH, etc.).
 
 ## `aspire describe --apphost <path> --format Json`
 
@@ -81,7 +105,7 @@ aspire describe \
   --non-interactive --nologo
 ```
 
-### Output shape (object with `resources` array)
+### Output shape
 
 ```json
 {
@@ -115,19 +139,17 @@ aspire describe \
 }
 ```
 
-Key fields per resource:
-
 | Field | Notes |
 |---|---|
 | `name` | Internal resource name (used in `aspire resource <name> <command>`). |
 | `displayName` | Human-readable label for the UI. |
 | `resourceType` | E.g. `"Container"`, `"Project"`, `"Executable"`, `"Parameter"`. |
-| `state` | Raw state string from Aspire. Normalised by `Model.classifyResourceState()`. |
+| `state` | Raw state string. Normalised by `Model.classifyResourceState()`. |
 | `healthStatus` | `"Healthy"`, `"Unhealthy"`, `"Degraded"`, or absent/null. |
-| `urls` | Array of `{name, url}` objects. Only `http`/`https` URLs are safe to surface (others may carry embedded credentials). |
-| `commands` | Object keyed by command name. Each command has `state` (`"Enabled"` / `"Disabled"`), `displayName`, `description`, `sortOrder`. Only `"Enabled"` commands are offered in the UI. |
+| `urls` | Array of `{name, url}`. Only `http`/`https` URLs are safe to surface. |
+| `commands` | Object keyed by command name. Only `"state": "Enabled"` commands are offered in the UI. |
 
-### Resource state categories (as classified by `Model.classifyResourceState`)
+### Resource state categories (`Model.classifyResourceState`)
 
 | Raw state (case-insensitive) | Category |
 |---|---|
@@ -137,7 +159,7 @@ Key fields per resource:
 | `"Exited"`, `"Finished"`, `"FinishedSuccessfully"` | `"stopped"` (normal terminal state for one-shot jobs — not a failure) |
 | anything else | `"starting"` |
 
-### Health categories
+### Health categories (`Model.classifyHealth`)
 
 | Raw value | Category |
 |---|---|
@@ -145,9 +167,15 @@ Key fields per resource:
 | `"Unhealthy"`, `"Degraded"` | `"unhealthy"` |
 | absent / other | `"unknown"` |
 
+### URL safety constraint
+
+Only `http`/`https` endpoints are surfaced.  Other URL schemes (`tcp`, `rediss`,
+`amqp`, …) can carry embedded credentials for some resource types and are excluded
+entirely from the details panel rather than filtered value by value.
+
 ## `aspire stop --apphost <path>`
 
-Stops (kills) the AppHost and all its managed resources.
+Stops the AppHost and all its managed resources.
 
 ```sh
 aspire stop \
@@ -155,9 +183,9 @@ aspire stop \
   --non-interactive --nologo
 ```
 
-This is the only destructive action the plugin offers, and it always sits
-behind a confirmation dialog.  After `aspire stop`, the next `aspire ps` poll
-will no longer list the AppHost, and the panel removes it automatically.
+This is the only destructive action the plugin offers, and it always sits behind a
+confirmation dialog.  After `aspire stop`, the next `aspire ps` poll stops
+reporting that AppHost, and the panel removes it automatically.
 
 ## `aspire resource <name> <command> --apphost <path>`
 
@@ -171,25 +199,15 @@ aspire resource cache restart \
 
 `<name>` is the resource's `name` field from `aspire describe` output.
 `<command>` is the key in the `commands` object (e.g. `"restart"`, `"stop"`).
-The plugin only calls commands Aspire itself reports as `"state": "Enabled"` —
-it never hardcodes a fixed set.
-
-## Aspire monitoring sub-skill
-
-The `aspire-monitoring` sub-skill covers the Aspire OpenTelemetry / dashboard
-side (traces, metrics, logs).  This plugin does **not** use the monitoring
-stack — it is a pure CLI observer — so `aspire-monitoring` context is not
-relevant here.
+The plugin only calls commands Aspire reports as `"state": "Enabled"` — never a
+hardcoded set.
 
 ## Error handling conventions
 
-- **Non-zero exit from `aspire ps`**: treat as a transient failure; keep the
-  last good AppHost snapshot rather than resetting to empty.  Set
+- **Non-zero exit from `aspire ps`**: keep the last good AppHost snapshot; set
   `lastPollFailed = true` to dim the bar icon.
-- **Non-zero exit from `aspire describe`**: surface the stderr text to the
-  user as "Couldn't read resource status — \<stderr\>"; do not crash the panel.
-- **Non-zero exit from `aspire stop` / `aspire resource`**: surface stderr
-  text beneath the resource list.
-- The CLI may output nothing (empty stdout) if the AppHost is shutting down
-  mid-call; treat that as a parse failure (empty resource list), not as an
-  error.
+- **Non-zero exit from `aspire describe`**: surface stderr as "Couldn't read resource
+  status — \<stderr\>"; do not crash the panel.
+- **Non-zero exit from `aspire stop` / `aspire resource`**: surface stderr beneath
+  the resource list.
+- **Empty stdout**: treat as a parse failure (empty list), not as a hard error.

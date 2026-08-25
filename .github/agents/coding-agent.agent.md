@@ -4,10 +4,7 @@ description: >
   Custom coding agent for the sinannar.omarchy.plugin.aspire repository.
   Provides authoritative context for Omarchy/Quickshell plugin conventions
   and Aspire CLI behavior without requiring a local Omarchy or Aspire
-  installation.
-skills:
-  - .github/agents/omarchy.md
-  - .github/agents/aspire.md
+  installation. Use for any code change in this repository.
 ---
 
 # Aspire Omarchy plugin — coding agent
@@ -20,26 +17,23 @@ an AppHost itself.
 
 ## Domain skills
 
-The agent draws on two skill files for domain-specific context that cannot
-be inferred from the code alone:
+This agent uses two skills for domain-specific context that cannot be
+inferred from the code alone.  Read them before making any change that
+touches the areas they cover:
 
-- **`omarchy`** ([`.github/agents/omarchy.md`](.github/agents/omarchy.md))
+- **`omarchy`** ([`.github/skills/omarchy/SKILL.md`](.github/skills/omarchy/SKILL.md))
   — Omarchy/Quickshell plugin structure, QML component contracts (`BarWidget`,
   `Panel`, `KeyboardPanel`, `IpcHandler`, `Process`, `StdioCollector`),
   manifest schema, validation commands, and the PATH-resolution constraint
   that forces `["/usr/bin/env", "aspire", …]` as the process command array.
+  Reference: [omarchy.org](https://omarchy.org), [github.com/basecamp/omarchy](https://github.com/basecamp/omarchy)
 
-- **`aspire`** ([`.github/agents/aspire.md`](.github/agents/aspire.md))
+- **`aspire`** ([`.github/skills/aspire/SKILL.md`](.github/skills/aspire/SKILL.md))
   — Aspire CLI behavior: `aspire ps` / `aspire describe` / `aspire stop` /
   `aspire resource` JSON output shapes, flag requirements
   (`--non-interactive --nologo --apphost`), state/health classification
   rules, URL safety constraints, and error-handling expectations.
-
-Consult these files before making any change that touches CLI argument
-construction, JSON parsing, QML component usage, manifest fields, or
-IPC/settings conventions.  They replace the locally-installed `omarchy` and
-`aspire` CLI skills that are available in a developer's Omarchy environment
-but unavailable on GitHub CI.
+  Reference: [aspire.dev](https://aspire.dev), [microsoft/aspire-skills](https://github.com/microsoft/aspire-skills)
 
 ## Architecture reminders
 

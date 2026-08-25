@@ -1,10 +1,36 @@
-# Omarchy / Quickshell plugin knowledge
+---
+name: omarchy
+description: >-
+  **WORKFLOW SKILL** — Omarchy/Quickshell plugin conventions for the
+  sinannar.omarchy.plugin.aspire bar-widget plugin. Covers BarWidget, Panel,
+  KeyboardPanel, IpcHandler, Process, and StdioCollector component contracts;
+  manifest schema; the /usr/bin/env PATH-resolution constraint; settings;
+  validation commands; and color/style helpers. USE FOR: any change touching
+  BarWidget.qml, Panel.qml, manifest.json, or the QML layer of the plugin.
+  DO NOT USE FOR: Model.js parsing logic (no QML dependency there) or anything
+  not specific to Omarchy/Quickshell plugin structure.
+license: MIT
+metadata:
+  author: sinannar
+  version: "1.0.0"
+  references:
+    - https://omarchy.org
+    - https://github.com/basecamp/omarchy
+    - https://quickshell.de
+---
+
+# Omarchy / Quickshell Plugin — Skill
+
+> For full Omarchy documentation see:
+> - **[omarchy.org](https://omarchy.org)** — official Omarchy site and manual
+> - **[github.com/basecamp/omarchy](https://github.com/basecamp/omarchy)** — source repository and `manual/` directory
+> - **[quickshell.de](https://quickshell.de)** — Quickshell QML shell documentation
 
 ## What Omarchy is
 
-Omarchy is a minimal, opinionated Linux desktop environment built on Wayland.
-Its shell layer is [Quickshell](https://quickshell.de/) — a QML-based
-compositor shell.  Plugins extend the shell's status bar (and optionally pop
+Omarchy is a minimal, opinionated Linux desktop environment built on Wayland by
+Basecamp/DHH.  Its shell layer is [Quickshell](https://quickshell.de/) — a QML-
+based compositor shell.  Plugins extend the shell's status bar (and optionally pop
 up panels) without modifying core shell code.
 
 ## Plugin manifest (`manifest.json`)
@@ -161,8 +187,9 @@ qmllint -I "$OMARCHY_PATH/shell" BarWidget.qml Panel.qml
 ```
 
 These two commands together catch manifest schema errors and QML type
-violations respectively.  Run them (via `checks/validate.sh`) before
-every commit that touches QML or `manifest.json`.
+violations respectively.  Run them (via `checks/validate.sh`) before every
+commit that touches QML or `manifest.json`.  These require a local Omarchy
+installation and cannot run on GitHub CI.
 
 ## Color and style helpers (qs.Commons / qs.Ui)
 
