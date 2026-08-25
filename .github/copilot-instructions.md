@@ -9,15 +9,19 @@ already running.
 
 ## Relevant skills
 
-When working in this repo, invoke these Copilot CLI skills for authoritative
-context rather than guessing:
+Domain context for this plugin is captured in two skill files under
+`.github/agents/`.  Read them before making changes that touch the areas they
+cover — they replace the locally-installed Omarchy/Aspire CLI skills that are
+not available on GitHub CI:
 
-- **`omarchy`** — for anything touching the bar widget, panel, IPC, settings,
-  or how Quickshell plugins are structured/loaded in Omarchy's shell.
-- **`aspire`** (and its sub-skills, e.g. `aspire-monitoring`) — for Aspire CLI
-  behavior this plugin depends on (`aspire ps`, `aspire describe`, `aspire
-  stop`, `aspire resource <name> <command>`), including output shapes and
-  flags, before changing how `Model.js` builds argv or parses CLI output.
+- **[`omarchy`](.github/agents/omarchy.md)** — for anything touching the bar
+  widget, panel, IPC, settings, or how Quickshell plugins are
+  structured/loaded in Omarchy's shell.
+- **[`aspire`](.github/agents/aspire.md)** (and its sub-skills, e.g.
+  `aspire-monitoring`) — for Aspire CLI behavior this plugin depends on
+  (`aspire ps`, `aspire describe`, `aspire stop`,
+  `aspire resource <name> <command>`), including output shapes and flags,
+  before changing how `Model.js` builds argv or parses CLI output.
 
 ## Files
 
