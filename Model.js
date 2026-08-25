@@ -6,9 +6,61 @@
 // reports as running are ever shown or acted on. Stopped AppHosts are never
 // tracked, configured, or started from here.
 
+// ---- Producer-side caps ----------------------------------------------------
+// Hard limits on the size of CLI output this plugin is willing to process.
+// A malicious or unexpectedly bloated `aspire ps`/`aspire describe` response
+// is therefore unable to exhaust memory in the long-lived shell process.
+//
+// MAX_OUTPUT_CHARS  – UTF-16 code units accepted from stdout before truncation.
+//   JavaScript String.length counts UTF-16 code units (not bytes); for the
+//   ASCII-heavy JSON that Aspire emits each code unit equals one byte, so the
+//   limit behaves as a ~1 MB byte cap in practice. At most 2 MB of V8 heap
+//   per collector is an acceptable bound even for fully BMP Unicode input.
+// MAX_PS_ENTRIES    – maximum AppHost entries accepted from `aspire ps`.
+// MAX_RESOURCES     – maximum resource entries accepted from `aspire describe`.
+// MAX_URLS          – maximum URL endpoints kept per resource.
+// MAX_COMMANDS      – maximum resource commands kept per resource.
+var MAX_OUTPUT_CHARS = 1 * 1024 * 1024   // ~1 MB for ASCII-heavy JSON
+var MAX_PS_ENTRIES   = 50
+var MAX_RESOURCES    = 500
+var MAX_URLS         = 20
+var MAX_COMMANDS     = 20
+
+// Truncates a complete text payload to MAX_OUTPUT_CHARS. This remains the
+// parse-time guard (tryParseJson uses it) and also a safe boundary for any
+// external caller that still has a full string rather than stream chunks.
+function capOutput(text) {
+  var s = String(text === undefined || text === null ? "" : text)
+  if (s.length > MAX_OUTPUT_CHARS) return s.substring(0, MAX_OUTPUT_CHARS)
+  return s
+}
+
+// Appends a stream chunk while preserving a hard MAX_OUTPUT_CHARS cap.
+// This is used by QML stream parsers to bound memory *during collection*,
+// not only after process exit.
+function appendCapped(existing, chunk) {
+  var current = String(existing === undefined || existing === null ? "" : existing)
+  if (current.length >= MAX_OUTPUT_CHARS) return current
+  var next = String(chunk === undefined || chunk === null ? "" : chunk)
+  if (next === "") return current
+  var remaining = MAX_OUTPUT_CHARS - current.length
+  if (next.length > remaining) next = next.substring(0, remaining)
+  return current + next
+}
+
+// True if a collected string hit the hard MAX_OUTPUT_CHARS boundary, meaning
+// the CLI likely emitted more than was retained. Callers use this to tell
+// "the CLI printed nothing/garbage" (never capped, safe to treat as empty)
+// apart from "a real, larger response was cut off mid-stream" (capped, so a
+// resulting parse failure must NOT be treated as "no data" — the caller
+// should keep its last-known-good snapshot instead of blanking out).
+function wasCapped(text) {
+  return String(text === undefined || text === null ? "" : text).length >= MAX_OUTPUT_CHARS
+}
+
 function tryParseJson(text) {
   try {
-    return JSON.parse(String(text === undefined || text === null ? "" : text))
+    return JSON.parse(capOutput(text))
   } catch (e) {
     return null
   }
@@ -45,6 +97,8 @@ function appHostLabel(appHostPath) {
 // Parses `aspire ps --format Json` output into the running-only entries this
 // plugin ever tracks, sorted by label so the panel order is stable across
 // refreshes rather than following process-start order.
+// At most MAX_PS_ENTRIES running AppHosts are kept so a crafted response
+// cannot cause unbounded allocation.
 function parsePsRunning(jsonText) {
   var parsed = tryParseJson(jsonText)
   var entries = Array.isArray(parsed) ? parsed : []
@@ -60,6 +114,10 @@ function parsePsRunning(jsonText) {
       dashboardUrl: typeof entry.dashboardUrl === "string" ? entry.dashboardUrl : "",
       sdkVersion: String(entry.sdkVersion || "")
     })
+    // Cap applied in input order (before the label sort below) so entries
+    // beyond the limit are simply ignored rather than causing unbounded
+    // allocation. Realistic deployments never approach MAX_PS_ENTRIES.
+    if (running.length >= MAX_PS_ENTRIES) break
   }
   running.sort(function(a, b) { return a.label === b.label ? 0 : (a.label < b.label ? -1 : 1) })
   return running
@@ -91,7 +149,7 @@ function classifyHealth(healthStatus) {
 // Only http/https endpoints are surfaced. Other URL schemes (tcp, rediss,
 // amqp, ...) can carry embedded credentials for some resource types, so they
 // are left out of the details panel entirely rather than filtered value by
-// value.
+// value. At most MAX_URLS entries are kept per resource.
 function safeUrls(raw) {
   var urls = Array.isArray(raw && raw.urls) ? raw.urls : []
   var result = []
@@ -100,6 +158,7 @@ function safeUrls(raw) {
     if (!u || typeof u.url !== "string") continue
     if (!/^https?:\/\//i.test(u.url)) continue
     result.push({ name: String(u.name || ""), url: u.url })
+    if (result.length >= MAX_URLS) break
   }
   return result
 }
@@ -107,7 +166,14 @@ function safeUrls(raw) {
 // Resource action buttons are entirely data-driven: only commands Aspire
 // itself reports as "Enabled" are ever offered, and never a hardcoded
 // start/stop/restart trio. Sorted by Aspire's own sortOrder so the dashboard
-// and this panel agree on button order.
+// and this panel agree on button order. At most MAX_COMMANDS entries are kept
+// per resource — sorted first, then capped, so a resource with more than
+// MAX_COMMANDS enabled commands still keeps its lowest-sortOrder ones rather
+// than whichever happened to be the first object keys encountered. The
+// per-resource command count is itself bounded by the outer MAX_RESOURCES /
+// MAX_OUTPUT_CHARS caps already applied to the response this is called on,
+// so sorting the full per-resource list before slicing is not a separate
+// unbounded-allocation risk.
 function enabledCommands(raw) {
   var commands = raw && raw.commands && typeof raw.commands === "object" ? raw.commands : {}
   var list = []
@@ -124,6 +190,7 @@ function enabledCommands(raw) {
     })
   }
   list.sort(function(a, b) { return a.sortOrder - b.sortOrder })
+  if (list.length > MAX_COMMANDS) list = list.slice(0, MAX_COMMANDS)
   return list
 }
 
@@ -148,7 +215,8 @@ function normalizeResource(raw) {
 // Parses `aspire describe --format Json` into the normalized resource list
 // for one AppHost. Missing/malformed input yields an empty list rather than
 // throwing, so a transient CLI hiccup degrades to "no resources known" for
-// that AppHost instead of breaking the whole panel.
+// that AppHost instead of breaking the whole panel. At most MAX_RESOURCES
+// entries are kept to bound allocation from a bloated response.
 function parseDescribeResources(jsonText) {
   var parsed = tryParseJson(jsonText)
   var raw = parsed && Array.isArray(parsed.resources) ? parsed.resources : []
@@ -156,6 +224,7 @@ function parseDescribeResources(jsonText) {
   for (var i = 0; i < raw.length; i++) {
     var resource = normalizeResource(raw[i])
     if (resource) resources.push(resource)
+    if (resources.length >= MAX_RESOURCES) break
   }
   return resources
 }
@@ -279,6 +348,14 @@ function augmentedPath(currentPath, home) {
 
 if (typeof module !== "undefined") {
   module.exports = {
+    MAX_OUTPUT_CHARS: MAX_OUTPUT_CHARS,
+    MAX_PS_ENTRIES: MAX_PS_ENTRIES,
+    MAX_RESOURCES: MAX_RESOURCES,
+    MAX_URLS: MAX_URLS,
+    MAX_COMMANDS: MAX_COMMANDS,
+    capOutput: capOutput,
+    appendCapped: appendCapped,
+    wasCapped: wasCapped,
     tryParseJson: tryParseJson,
     isRunningPsEntry: isRunningPsEntry,
     psEntryId: psEntryId,

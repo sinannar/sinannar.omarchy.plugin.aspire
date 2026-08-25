@@ -24,6 +24,8 @@ BarWidget {
   property var runningAppHosts: []
   property bool lastPollFailed: false
   property bool everPolled: false
+  property string psStdoutText: ""
+  property string psStderrText: ""
 
   readonly property string countText: Model.barCountText(runningAppHosts)
   readonly property bool hasAppHosts: runningAppHosts.length > 0
@@ -39,6 +41,8 @@ BarWidget {
 
   function refresh() {
     if (psProcess.running) return
+    root.psStdoutText = ""
+    root.psStderrText = ""
     psProcess.running = true
   }
 
@@ -47,13 +51,15 @@ BarWidget {
     command: Model.aspireCommand(Model.psArgs())
     environment: ({ "PATH": Model.augmentedPath(Quickshell.env("PATH"), Quickshell.env("HOME")) })
 
-    stdout: StdioCollector {
-      id: psStdout
-      waitForEnd: true
+    // Collect incrementally with a hard cap so memory stays bounded even if
+    // aspire emits unexpectedly large output.
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(data) { root.psStdoutText = Model.appendCapped(root.psStdoutText, data) }
     }
-    stderr: StdioCollector {
-      id: psStderr
-      waitForEnd: true
+    stderr: SplitParser {
+      splitMarker: ""
+      onRead: function(data) { root.psStderrText = Model.appendCapped(root.psStderrText, data) }
     }
 
     onExited: function(exitCode) {
@@ -64,8 +70,17 @@ BarWidget {
         root.lastPollFailed = true
         return
       }
+      // A capped response (root.psStdoutText hit MAX_OUTPUT_CHARS) that
+      // fails to parse means real data was truncated mid-stream, not that
+      // aspire reported zero AppHosts. Treat that the same as a poll
+      // failure — keep the last good snapshot — rather than letting
+      // parsePsRunning's "malformed input -> []" fallback blank the bar.
+      if (Model.wasCapped(root.psStdoutText) && Model.tryParseJson(root.psStdoutText) === null) {
+        root.lastPollFailed = true
+        return
+      }
       root.lastPollFailed = false
-      root.runningAppHosts = Model.parsePsRunning(psStdout.text)
+      root.runningAppHosts = Model.parsePsRunning(root.psStdoutText)
     }
   }
 
