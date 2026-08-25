@@ -1,0 +1,33 @@
+{
+  "resources": [
+    {
+      "name": "contoso-worker",
+      "displayName": "contoso-worker",
+      "resourceType": "Project",
+      "state": "FailedToStart",
+      "healthStatus": "Unhealthy",
+      "dashboardUrl": "https://localhost:17086/resource/contoso-worker",
+      "urls": [],
+      "commands": {
+        "restart": {
+          "displayName": "Restart",
+          "description": "Restart the resource",
+          "state": "Enabled",
+          "sortOrder": 100
+        }
+      }
+    },
+    {
+      "name": "contoso-search",
+      "displayName": "contoso-search",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Degraded",
+      "dashboardUrl": "https://localhost:17086/resource/contoso-search",
+      "urls": [
+        { "name": "http", "url": "http://localhost:9200" }
+      ],
+      "commands": {}
+    }
+  ]
+}

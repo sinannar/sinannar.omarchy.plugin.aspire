@@ -1,0 +1,21 @@
+{
+  "resources": [
+    {
+      "name": "contoso-db-migrations",
+      "displayName": "contoso-db-migrations",
+      "resourceType": "Project",
+      "state": "FinishedSuccessfully",
+      "healthStatus": null,
+      "dashboardUrl": "https://localhost:17086/resource/contoso-db-migrations",
+      "urls": [],
+      "commands": {
+        "restart": {
+          "displayName": "Restart",
+          "description": "Re-run the one-shot migration job",
+          "state": "Enabled",
+          "sortOrder": 100
+        }
+      }
+    }
+  ]
+}

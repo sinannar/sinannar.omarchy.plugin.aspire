@@ -9,15 +9,60 @@ already running.
 
 ## Relevant skills
 
-When working in this repo, invoke these Copilot CLI skills for authoritative
-context rather than guessing:
+Domain context for this plugin is captured in agent skill files under
+`.github/skills/`. These are copied verbatim from the locally-installed
+Omarchy/Aspire CLI skills (`~/.agents/skills/`) used for day-to-day
+development on this repo, so the same skill content is available on
+GitHub's cloud agent runners where no local Omarchy or Aspire install
+exists. Read the relevant one before making changes that touch the areas
+it covers:
 
-- **`omarchy`** — for anything touching the bar widget, panel, IPC, settings,
-  or how Quickshell plugins are structured/loaded in Omarchy's shell.
-- **`aspire`** (and its sub-skills, e.g. `aspire-monitoring`) — for Aspire CLI
-  behavior this plugin depends on (`aspire ps`, `aspire describe`, `aspire
-  stop`, `aspire resource <name> <command>`), including output shapes and
-  flags, before changing how `Model.js` builds argv or parses CLI output.
+- **[`omarchy`](.github/skills/omarchy/SKILL.md)** — for anything touching the
+  bar widget, panel, IPC, settings, or how Quickshell plugins are
+  structured/loaded in Omarchy's shell.  External reference:
+  [omarchy.org](https://omarchy.org) / [github.com/basecamp/omarchy](https://github.com/basecamp/omarchy).
+- **[`aspire`](.github/skills/aspire/SKILL.md)** — for Aspire CLI behavior this
+  plugin depends on (`aspire ps`, `aspire describe`, `aspire stop`,
+  `aspire resource <name> <command>`), including output shapes and flags,
+  before changing how `Model.js` builds argv or parses CLI output.  External
+  references: [aspire.dev](https://aspire.dev) and the first-party
+  [microsoft/aspire-skills](https://github.com/microsoft/aspire-skills) pack.
+- **[`aspire-orchestration`](.github/skills/aspire-orchestration/SKILL.md)**,
+  **[`aspire-monitoring`](.github/skills/aspire-monitoring/SKILL.md)**,
+  **[`aspire-deployment`](.github/skills/aspire-deployment/SKILL.md)**,
+  **[`aspire-init`](.github/skills/aspire-init/SKILL.md)** — the rest of the
+  local Aspire CLI skill set (lifecycle, diagnostics, deployment, scaffolding).
+  This plugin's own scope stays read-mostly (`ps`/`describe`/`stop`/
+  `resource <name> <command>` only — it never starts, deploys, or configures
+  an AppHost), but these are included alongside `aspire` so the full local
+  skill set stays in sync in one place.
+
+When the local skills under `~/.agents/skills/` change, re-sync
+`.github/skills/` from them (copy, don't hand-edit) to keep this repo's
+GitHub-side agent context matching local development.
+
+### Offline command contracts
+
+Two additional skills are original to this repo (not synced from
+`~/.agents/skills/`) and exist specifically for environments with no
+`aspire` or `omarchy` binary on `PATH`, such as GitHub's cloud agent
+runners:
+
+- **[`aspire-cli-contract`](.github/skills/aspire-cli-contract/SKILL.md)** —
+  the exact JSON shapes of `aspire ps`/`describe` as consumed by `Model.js`,
+  with versioned fixtures under its `fixtures/` directory for exercising
+  `Model.js`'s parsing functions with plain Node when `aspire` isn't
+  installed.
+- **[`omarchy-plugin-contract`](.github/skills/omarchy-plugin-contract/SKILL.md)** —
+  the exact `omarchy plugin *` / `omarchy bar *` / `omarchy-shell` IPC /
+  `qmllint` command contracts this plugin's own development touches, with
+  versioned fixtures for `omarchy plugin list --json`.
+
+Both are documentation plus static JSON fixtures only — neither adds a mock
+executable, and neither replaces live testing against a real Aspire/Omarchy
+install before release. Prefer the live `aspire`/`omarchy` skills and
+`checks/*.sh` whenever the real CLIs are available; fall back to these two
+contract skills only when they are not.
 
 ## Files
 

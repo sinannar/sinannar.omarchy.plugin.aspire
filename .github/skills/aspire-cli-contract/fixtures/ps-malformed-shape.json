@@ -1,0 +1,4 @@
+{
+  "error": "unsupported response shape — aspire ps --format Json is documented to emit a top-level JSON array; this fixture models a future/misbehaving CLI returning an object instead so Model.parsePsRunning's Array.isArray guard is exercised.",
+  "results": []
+}

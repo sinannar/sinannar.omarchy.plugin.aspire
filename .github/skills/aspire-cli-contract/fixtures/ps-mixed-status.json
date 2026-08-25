@@ -1,0 +1,23 @@
+[
+  {
+    "status": "Running",
+    "appHostPath": "/home/example/src/contoso-shop/ContosoShop.AppHost/ContosoShop.AppHost.csproj",
+    "appHostPid": 48213,
+    "dashboardUrl": "https://localhost:17086",
+    "sdkVersion": "13.4.0"
+  },
+  {
+    "status": "Stopped",
+    "appHostPath": "/home/example/src/northwind-worker/Northwind.AppHost/Northwind.AppHost.csproj",
+    "appHostPid": 39117,
+    "dashboardUrl": "https://localhost:17140",
+    "sdkVersion": "13.4.0"
+  },
+  {
+    "status": "Starting",
+    "appHostPath": "/home/example/src/adventure-cli/Adventure.AppHost/apphost.ts",
+    "appHostPid": 60044,
+    "dashboardUrl": "",
+    "sdkVersion": "13.4.0"
+  }
+]

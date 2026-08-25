@@ -1,0 +1,4 @@
+not valid json at all — models a truncated/garbled `aspire describe` stdout
+(e.g. process killed mid-write, or piping through a corrupting filter).
+Model.tryParseJson must return null for this and parseDescribeResources
+must degrade to an empty resource list rather than throwing.
