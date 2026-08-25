@@ -1,0 +1,19 @@
+{
+  "resources": [
+    {
+      "name": "contoso-broker",
+      "displayName": "contoso-broker",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy",
+      "dashboardUrl": "https://localhost:17086/resource/contoso-broker",
+      "urls": [
+        { "name": "http-mgmt", "url": "http://localhost:15672" },
+        { "name": "amqp", "url": "amqp://localhost:5672" },
+        { "name": "rediss", "url": "rediss://localhost:6380" },
+        { "name": "https-mgmt", "url": "https://localhost:15671" }
+      ],
+      "commands": {}
+    }
+  ]
+}

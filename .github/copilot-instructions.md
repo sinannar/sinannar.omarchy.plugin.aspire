@@ -41,6 +41,29 @@ When the local skills under `~/.agents/skills/` change, re-sync
 `.github/skills/` from them (copy, don't hand-edit) to keep this repo's
 GitHub-side agent context matching local development.
 
+### Offline command contracts
+
+Two additional skills are original to this repo (not synced from
+`~/.agents/skills/`) and exist specifically for environments with no
+`aspire` or `omarchy` binary on `PATH`, such as GitHub's cloud agent
+runners:
+
+- **[`aspire-cli-contract`](.github/skills/aspire-cli-contract/SKILL.md)** —
+  the exact JSON shapes of `aspire ps`/`describe` as consumed by `Model.js`,
+  with versioned fixtures under its `fixtures/` directory for exercising
+  `Model.js`'s parsing functions with plain Node when `aspire` isn't
+  installed.
+- **[`omarchy-plugin-contract`](.github/skills/omarchy-plugin-contract/SKILL.md)** —
+  the exact `omarchy plugin *` / `omarchy bar *` / `omarchy-shell` IPC /
+  `qmllint` command contracts this plugin's own development touches, with
+  versioned fixtures for `omarchy plugin list --json`.
+
+Both are documentation plus static JSON fixtures only — neither adds a mock
+executable, and neither replaces live testing against a real Aspire/Omarchy
+install before release. Prefer the live `aspire`/`omarchy` skills and
+`checks/*.sh` whenever the real CLIs are available; fall back to these two
+contract skills only when they are not.
+
 ## Files
 
 - `manifest.json` — plugin metadata, registers `BarWidget.qml` as the bar-widget entry point.

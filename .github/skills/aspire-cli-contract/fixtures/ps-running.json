@@ -1,0 +1,16 @@
+[
+  {
+    "status": "Running",
+    "appHostPath": "/home/example/src/contoso-shop/ContosoShop.AppHost/ContosoShop.AppHost.csproj",
+    "appHostPid": 48213,
+    "dashboardUrl": "https://localhost:17086",
+    "sdkVersion": "13.4.0"
+  },
+  {
+    "status": "Running",
+    "appHostPath": "/home/example/src/fabrikam-api/Fabrikam.AppHost/apphost.cs",
+    "appHostPid": 51902,
+    "dashboardUrl": "https://localhost:17102",
+    "sdkVersion": "13.4.0"
+  }
+]

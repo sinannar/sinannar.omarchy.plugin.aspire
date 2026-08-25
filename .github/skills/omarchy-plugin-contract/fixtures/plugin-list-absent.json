@@ -1,0 +1,4 @@
+[
+  { "id": "omarchy.clock", "name": "Clock", "kinds": ["bar-widget"], "enabled": true, "active": false, "canDisable": true, "firstParty": true, "clonedFrom": "" },
+  { "id": "omarchy.bar", "name": "Bar", "kinds": ["bar"], "enabled": true, "active": true, "canDisable": false, "firstParty": true, "clonedFrom": "" }
+]

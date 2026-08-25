@@ -1,0 +1,12 @@
+[
+  {
+    "id": "sinannar.omarchy.plugin.aspire",
+    "name": "Aspire",
+    "kinds": ["bar-widget"],
+    "enabled": true,
+    "active": false,
+    "canDisable": true,
+    "firstParty": false,
+    "clonedFrom": "sinannar.omarchy.plugin.aspire-upstream"
+  }
+]

@@ -61,6 +61,26 @@ relevant skill before making any change that touches the areas it covers:
 > When the local skills are updated, re-sync `.github/skills/` from them
 > rather than hand-editing the copies here.
 
+Two more skills are original to this repo, not copied from
+`~/.agents/skills/`, and exist specifically to make command contracts
+reasoned-about (not executed) when neither CLI is installed:
+
+- **`aspire-cli-contract`** ([`.github/skills/aspire-cli-contract/SKILL.md`](.github/skills/aspire-cli-contract/SKILL.md))
+  — the precise JSON shapes of `aspire ps`/`describe` as consumed by
+  `Model.js`'s parsing functions (state/health classification tables, URL
+  filtering, enabled-command filtering), with versioned fixtures under its
+  `fixtures/` directory to feed into the Node validation pattern below.
+
+- **`omarchy-plugin-contract`** ([`.github/skills/omarchy-plugin-contract/SKILL.md`](.github/skills/omarchy-plugin-contract/SKILL.md))
+  — the precise `omarchy plugin list --json` schema, `omarchy plugin
+  validate` check order, `omarchy bar move`/`set` argument contracts, and
+  this plugin's `omarchy-shell` IPC exit-code/stderr behavior, all verified
+  against a live Omarchy install, with fixtures for `plugin list --json`.
+
+Read these before changing `Model.js`'s Aspire-JSON parsers or this
+plugin's manifest/IPC/settings surface, respectively, whenever a live
+`aspire`/`omarchy` binary is not available to check against directly.
+
 ## Architecture reminders
 
 - `Model.js` contains **all** parsing, normalization, aggregation, and

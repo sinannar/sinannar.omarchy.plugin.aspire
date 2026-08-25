@@ -1,0 +1,55 @@
+{
+  "resources": [
+    {
+      "name": "contoso-api",
+      "displayName": "contoso-api",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy",
+      "dashboardUrl": "https://localhost:17086/resource/contoso-api",
+      "urls": [
+        { "name": "http", "url": "http://localhost:5080" },
+        { "name": "https", "url": "https://localhost:5443" }
+      ],
+      "commands": {
+        "restart": {
+          "displayName": "Restart",
+          "description": "Restart the resource",
+          "state": "Enabled",
+          "sortOrder": 100
+        },
+        "stop": {
+          "displayName": "Stop",
+          "description": "Stop the resource",
+          "state": "Enabled",
+          "sortOrder": 200
+        },
+        "view-source": {
+          "displayName": "View Source",
+          "description": "Only meaningful once the resource is running",
+          "state": "Disabled",
+          "sortOrder": 300
+        }
+      }
+    },
+    {
+      "name": "contoso-cache",
+      "displayName": "contoso-cache",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy",
+      "dashboardUrl": "https://localhost:17086/resource/contoso-cache",
+      "urls": [
+        { "name": "tcp", "url": "tcp://localhost:6379" }
+      ],
+      "commands": {
+        "restart": {
+          "displayName": "Restart",
+          "description": "Restart the resource",
+          "state": "Enabled",
+          "sortOrder": 100
+        }
+      }
+    }
+  ]
+}
