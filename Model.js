@@ -111,7 +111,7 @@ function parsePsRunning(jsonText) {
       appHostPath: String(entry.appHostPath || ""),
       appHostPid: entry.appHostPid,
       label: appHostLabel(entry.appHostPath),
-      dashboardUrl: typeof entry.dashboardUrl === "string" ? entry.dashboardUrl : "",
+      dashboardUrl: isSafeHttpUrl(entry.dashboardUrl) ? entry.dashboardUrl : "",
       sdkVersion: String(entry.sdkVersion || "")
     })
     // Cap applied in input order (before the label sort below) so entries
@@ -146,6 +146,15 @@ function classifyHealth(healthStatus) {
   return "unknown"
 }
 
+// Only http/https URLs are ever surfaced or opened by this plugin — other
+// schemes (tcp, rediss, amqp, file, custom app protocols, ...) can carry
+// embedded credentials or trigger unintended external-handler behavior when
+// passed to Qt.openUrlExternally, so any non-http(s) value is dropped rather
+// than passed through.
+function isSafeHttpUrl(url) {
+  return typeof url === "string" && /^https?:\/\//i.test(url)
+}
+
 // Only http/https endpoints are surfaced. Other URL schemes (tcp, rediss,
 // amqp, ...) can carry embedded credentials for some resource types, so they
 // are left out of the details panel entirely rather than filtered value by
@@ -155,8 +164,7 @@ function safeUrls(raw) {
   var result = []
   for (var i = 0; i < urls.length; i++) {
     var u = urls[i]
-    if (!u || typeof u.url !== "string") continue
-    if (!/^https?:\/\//i.test(u.url)) continue
+    if (!u || !isSafeHttpUrl(u.url)) continue
     result.push({ name: String(u.name || ""), url: u.url })
     if (result.length >= MAX_URLS) break
   }
@@ -206,7 +214,7 @@ function normalizeResource(raw) {
     stateCategory: classifyResourceState(state),
     healthStatus: health,
     healthCategory: classifyHealth(health),
-    dashboardUrl: typeof raw.dashboardUrl === "string" ? raw.dashboardUrl : "",
+    dashboardUrl: isSafeHttpUrl(raw.dashboardUrl) ? raw.dashboardUrl : "",
     urls: safeUrls(raw),
     commands: enabledCommands(raw)
   }
@@ -364,6 +372,7 @@ if (typeof module !== "undefined") {
     classifyResourceState: classifyResourceState,
     classifyHealth: classifyHealth,
     safeUrls: safeUrls,
+    isSafeHttpUrl: isSafeHttpUrl,
     enabledCommands: enabledCommands,
     normalizeResource: normalizeResource,
     parseDescribeResources: parseDescribeResources,
