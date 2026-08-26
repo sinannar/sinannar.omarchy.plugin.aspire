@@ -83,10 +83,11 @@ from a terminal without requiring shell rc changes.
   AppHost to inspect from the panel's chip row, and only that selection
   drives an `aspire describe` call. This keeps the panel responsive with
   many AppHosts running at once instead of polling every one of them.
-- Only `http`/`https` endpoints are shown. Other URL schemes (`tcp`,
-  `rediss`, `amqp`, …) can carry embedded credentials for some resource
-  types, so they are left out of the details panel entirely rather than
-  filtered value by value.
+- Only `http`/`https` endpoints are shown, and this applies to the
+  Aspire dashboard URL as well as per-resource endpoints. Other URL schemes
+  (`tcp`, `rediss`, `amqp`, …) can carry embedded credentials for some
+  resource types, so they are left out of the details panel entirely rather
+  than filtered value by value.
 - Resource action buttons (Stop / Restart / Rebuild / …) are entirely
   data-driven from whatever Aspire itself reports as `"state": "Enabled"`
   for that resource — never a hardcoded start/stop/restart trio.
